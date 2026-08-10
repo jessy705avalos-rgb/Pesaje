@@ -219,18 +219,6 @@ class BleWeightRepository(
                             Log.e(TAG, "❌ No se pudo parsear la trama: '$frame'")
                         }
                     }
-
-//                    val reading = parseWeight(raw)
-//                    if (reading != null) {
-//                        Log.d(
-//                            TAG,
-//                            "✅ Peso parseado correctamente: ${reading.kilograms} kg (estable=${reading.isStable})"
-//                        )
-//                        val emitted = weightFlow.tryEmit(reading)
-//                        Log.d(TAG, "📡 tryEmit resultado: $emitted")
-//                    } else {
-//                        Log.e(TAG, "❌ No se pudo parsear el dato: '$raw'")
-//                    }
                 } else {
                     Log.w(
                         TAG,

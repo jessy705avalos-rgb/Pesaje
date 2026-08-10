@@ -15,6 +15,8 @@ import com.pesaje.presentation.ui.screens.WeightScreen
 import com.pesaje.presentation.ui.theme.PesajeTheme
 import com.pesaje.presentation.viewmodel.WeightViewModel
 import android.Manifest
+import com.pesaje.data.remote.TicketPrinterHelper
+import com.pesaje.data.repositoryImpl.PrinterRepositoryImpl
 import android.util.Log
 
 private const val TAG = "PESAJE_MAIN"
@@ -33,7 +35,9 @@ class MainActivity : ComponentActivity() {
         }
 
     private val repository by lazy {BleWeightRepository(applicationContext)}
-    private val viewModel by lazy {WeightViewModel(repository)}
+    private val printerHelper by lazy { TicketPrinterHelper() }
+    private val printerRepository by lazy { PrinterRepositoryImpl(printerHelper) }
+    private val viewModel by lazy {WeightViewModel(repository, printerRepository)}
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->

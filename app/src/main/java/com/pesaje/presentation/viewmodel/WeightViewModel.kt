@@ -1,13 +1,10 @@
 package com.pesaje.presentation.viewmodel
 
-import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pesaje.data.remote.PrinterBluetoothManager
-import com.pesaje.data.remote.TicketPrinterHelper
-import com.pesaje.data.repositoryImpl.PrinterRepositoryImpl
 import com.pesaje.domain.model.CattleWeighingState
 import com.pesaje.domain.model.WeighingMode
 import com.pesaje.domain.model.WeightReading
@@ -25,6 +22,7 @@ private const val TAG = "PESAJE_VM"
 
 class WeightViewModel(
     private val repository: WeightRepository,
+    private val printerRepository: PrinterRepository,
 
     ) : ViewModel() {
 
@@ -54,8 +52,6 @@ class WeightViewModel(
     private var observeJob: Job? = null
 
     //para la impresión
-    private val printerHelper = TicketPrinterHelper()
-    private val printerRepository = PrinterRepositoryImpl(printerHelper)
     private val printTicketUseCase = PrintTicketUseCase(printerRepository)
 
     private val _printStatus = MutableStateFlow<String?>(null)
