@@ -1,13 +1,17 @@
 package com.pesaje.presentation.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Balance
@@ -17,10 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pesaje.domain.model.CattleWeighingState
+import com.pesaje.domain.model.WeighingMode
 import com.pesaje.pesaje.R
 import com.pesaje.presentation.ui.theme.CardBackground
 import com.pesaje.presentation.ui.theme.ConnectedGreen
@@ -31,12 +38,29 @@ import com.pesaje.presentation.viewmodel.WeightViewModel
 @Composable
 fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
     val isConnected by viewModel.isConnected.collectAsState()
-    val weight by viewModel.currentWeight.collectAsState()
+    val currentWeight by viewModel.currentWeight.collectAsState()
 
+    val weighingMode by viewModel.weighingMode.collectAsState()
+    val cattleState by viewModel.cattleState.collectAsState()
+    val lockedWeight by viewModel.lockedWeight.collectAsState()
+
+    // Estados locales para el formulario de ganado
+    var areteId by remember { mutableStateOf("") }
+    var sexoSeleccionado by remember { mutableStateOf("Macho") }
+
+    val context = LocalContext.current
+    val printStatus by viewModel.printStatus.collectAsState()
+    LaunchedEffect(printStatus) {
+        printStatus?.let { mensaje ->
+            Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
+            viewModel.clearPrintStatus()
+        }
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(CardBackground)
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -78,7 +102,6 @@ fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
                 Icon(Icons.Default.Settings, contentDescription = "Configuración")
             }
         }
-        // ============ FIN SECCIÓN 1 ============
 
         // ============ SECCIÓN 2: Barra de conexión ============
         Row(
@@ -131,68 +154,123 @@ fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
                 Text(if (isConnected) "Reconectar" else "Conectar")
             }
         }
-        // ============ FIN SECCIÓN 2 ============
 
-        // ============ SECCIÓN 3: Tarjeta de peso ============
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color.White)
-                .padding(vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // ============ SECCIÓN 3: Selector de modo y Tarjeta de peso ============
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "PESO",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = weight?.let { "%.1f".format(it.kilograms) } ?: "--.-",
-                    fontSize = 56.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "kg",
-                    fontSize = 20.sp,
-                    color = ConnectedGreen,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+            SegmentedButton(
+                selected = weighingMode == WeighingMode.CATTLE,
+                onClick = { viewModel.setWeighingMode(WeighingMode.CATTLE) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+            ) {
+                Text("🐄 Ganado")
             }
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(
-                    onClick = {},
-                    label = {
-                        Text(if (weight?.isStable == true) "ESTABLE" else "INESTABLE")
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = if (weight?.isStable == true)
-                            ConnectedGreen.copy(alpha = 0.12f) else Color(0xFFFFF3CD),
-                        labelColor = if (weight?.isStable == true)
-                            ConnectedGreen else Color(0xFF8A6D00)
-                    )
-                )
-                AssistChip(
-                    onClick = {},
-                    label = {
-                        Text(if (weight?.isNet == true) "NETO" else "BRUTO")
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = Color(0xFFE8EAF6),
-                        labelColor = Color(0xFF3949AB)
-                    )
-                )
+            SegmentedButton(
+                selected = weighingMode == WeighingMode.STANDARD,
+                onClick = { viewModel.setWeighingMode(WeighingMode.STANDARD) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+            ) {
+                Text("🚛 Tráiler")
             }
         }
-        // ============ FIN SECCIÓN 3 ============
 
-        // ============ SECCIÓN 4: Botón Leer peso ============
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (weighingMode == WeighingMode.CATTLE) {
+                    val (statusText, statusColor) = when (cattleState) {
+                        CattleWeighingState.WAITING_FOR_ANIMAL -> "Esperando animal..." to Color.Gray
+                        CattleWeighingState.STABILIZING -> "⏳ Estabilizando peso..." to Color(
+                            0xFFE65100
+                        )
+
+                        CattleWeighingState.LOCKED -> "🎯 ¡PESO CAPTURADO!" to Color(0xFF2E7D32)
+                        CattleWeighingState.WAITING_FOR_EXIT -> "🔒 Peso Retenido (Espere a que baje)" to Color(
+                            0xFF1565C0
+                        )
+                    }
+
+                    Text(
+                        text = statusText,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                } else {
+                    Text(
+                        text = "MODO MANUAL / TRÁILER",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                val displayWeight =
+                    if (weighingMode == WeighingMode.CATTLE && lockedWeight != null) {
+                        lockedWeight
+                    } else {
+                        currentWeight?.kilograms
+                    }
+
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = displayWeight?.let { "%.1f".format(it) } ?: "--.-",
+                        fontSize = 52.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (lockedWeight != null && weighingMode == WeighingMode.CATTLE) Color(
+                            0xFF2E7D32
+                        ) else Color.Black
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "kg",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(if (currentWeight?.isStable == true) "ESTABLE" else "INESTABLE") },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (currentWeight?.isStable == true) Color(0xFFE8F5E9) else Color(
+                                0xFFFFF3CD
+                            ),
+                            labelColor = if (currentWeight?.isStable == true) Color(0xFF2E7D32) else Color(
+                                0xFF8A6D00
+                            )
+                        )
+                    )
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(if (currentWeight?.isNet == true) "NETO" else "BRUTO") },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color(0xFFE8EAF6),
+                            labelColor = Color(0xFF3949AB)
+                        )
+                    )
+                }
+            }
+        }
+
+        // ============ SECCIÓN 4: Botón Leer peso, Tara y Zero ============
         Button(
             onClick = { viewModel.readWeight() },
             enabled = isConnected,
@@ -206,15 +284,13 @@ fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
             Spacer(Modifier.width(8.dp))
             Text("Leer peso", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
-        // ============ FIN SECCIÓN 4 ============
 
-        // ============ SECCIÓN 5: Tara y Zero ============
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedButton(
-                onClick = {viewModel.setTare()},
+                onClick = { viewModel.setTare() },
                 enabled = isConnected,
                 modifier = Modifier
                     .weight(1f)
@@ -224,8 +300,8 @@ fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
                 Text("Tara")
             }
             OutlinedButton(
-                onClick = { viewModel.setZero()},
-                enabled= isConnected,
+                onClick = { viewModel.setZero() },
+                enabled = isConnected,
                 modifier = Modifier
                     .weight(1f)
                     .height(56.dp),
@@ -234,11 +310,63 @@ fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
                 Text("Zero")
             }
         }
-        // ============ FIN SECCIÓN 5 ============
 
-        // ============ SECCIÓN 6: Guardar ============
+        // ============ SECCIÓN 5: FORMULARIO GANADO (Arete y Sexo) ============
+        if (weighingMode == WeighingMode.CATTLE) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Datos del Animal",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    OutlinedTextField(
+                        value = areteId,
+                        onValueChange = { areteId = it },
+                        label = { Text("Arete / ID") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text("Sexo:", fontWeight = FontWeight.Medium)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(
+                                selected = (sexoSeleccionado == "Macho"),
+                                onClick = { sexoSeleccionado = "Macho" }
+                            )
+                            Text("Macho")
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(
+                                selected = (sexoSeleccionado == "Hembra"),
+                                onClick = { sexoSeleccionado = "Hembra" }
+                            )
+                            Text("Hembra")
+                        }
+                    }
+                }
+            }
+        }
+
+        // ============ SECCIÓN 6: Acciones (Guardar e Imprimir) ============
         Button(
-            onClick = { },
+            onClick = { /* Acción de Guardar */ },
+            enabled = weighingMode != WeighingMode.CATTLE || areteId.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -252,7 +380,32 @@ fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
             Spacer(Modifier.width(8.dp))
             Text("Guardar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
-        // ============ FIN SECCIÓN 6 ============
 
-    } //  cierra el Column PRINCIPAL de toda la pantalla
+        OutlinedButton(
+            onClick = {
+                val pesoAImprimir =
+                    if (weighingMode == WeighingMode.CATTLE && lockedWeight != null) {
+                        lockedWeight
+                    } else {
+                        currentWeight?.kilograms
+                    }
+                viewModel.printTicket(
+                    context= context,
+                    printerName = "Printer001",
+                    areteId = areteId,
+                    sexo = sexoSeleccionado,
+                    pesoKg = pesoAImprimir
+                )
+            },
+            enabled= areteId.trim().isNotEmpty(),// Deshabilita el botón si el arete está vacío (quitando espacios)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(Icons.Default.Print, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Imprimir Ticket", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
 }
