@@ -23,5 +23,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Pesaje"
-include(":app")
- 
+include(":app-ganadero")
+include(":core")
