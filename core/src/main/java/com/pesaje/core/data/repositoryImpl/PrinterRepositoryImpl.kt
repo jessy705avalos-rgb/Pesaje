@@ -1,4 +1,4 @@
-package com.pesaje.core.data.repository
+package com.pesaje.core.data.repositoryImpl
 
 import com.pesaje.core.data.remote.PrinterBluetoothManager
 import com.pesaje.core.data.remote.TicketPrinterHelper

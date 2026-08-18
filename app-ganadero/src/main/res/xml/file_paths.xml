@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Mapea la carpeta context.filesDir/csv_exports -->
+    <files-path
+        name="csv_exports"
+        path="csv_exports/" />
+    <!-- Mapea la carpeta context.cacheDir/csv_exports -->
+    <cache-path
+        name="cache_exports"
+        path="csv_exports/" />
+</paths>

@@ -17,9 +17,26 @@ import com.pesaje.presentation.viewmodel.WeightViewModel
 import android.Manifest
 import com.pesaje.core.data.remote.TicketPrinterHelper
 import android.util.Log
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Scale
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.room.Room
+import com.pesaje.core.data.local.AppDatabase
 import com.pesaje.core.data.remote.PrinterBluetoothManager
-import com.pesaje.core.data.repository.PrinterRepositoryImpl
+import com.pesaje.core.data.repositoryImpl.PrinterRepositoryImpl
 import com.pesaje.core.domain.usecase.PrintCattleTicketUseCase
+import com.pesaje.presentation.ui.screens.HistorialScreen
+import com.pesaje.presentation.viewmodel.HistorialViewModel
+import kotlin.getValue
 
 private const val TAG = "PESAJE_MAIN"
 
@@ -50,11 +67,26 @@ class MainActivity : ComponentActivity() {
         PrintCattleTicketUseCase(printerRepository)
     }
 
+    private val database by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java,
+            "pesaje_ganado_db"
+        ).build()
+    }
+
+    private val registroDao by lazy { database.registroPesajeGanadoDao() }
+
     private val viewModel by lazy {
         WeightViewModel(
             repository = weightRepository,
-            printCattleTicketUseCase = printCattleTicketUseCase
+            printCattleTicketUseCase = printCattleTicketUseCase,
+            registroDao = registroDao
         )
+    }
+
+    private val historialViewModel by lazy {
+        HistorialViewModel(registroDao)
     }
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
@@ -78,11 +110,41 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PesajeTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    WeightScreen(
-                        viewModel = viewModel,
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                var pantallaActual by remember { mutableStateOf("principal") }
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = pantallaActual == "principal",
+                                onClick = { pantallaActual = "principal" },
+                                icon = { Icon(Icons.Default.Scale, contentDescription = "Pesaje") },
+                                label = { Text("Pesaje") }
+                            )
+                            NavigationBarItem(
+                                selected = pantallaActual == "historial",
+                                onClick = { pantallaActual = "historial" },
+                                icon = { Icon(Icons.Default.List, contentDescription = "Historial") },
+                                label = { Text("Historial") }
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    when (pantallaActual) {
+                        "principal" -> {
+                            WeightScreen(
+                                viewModel = viewModel,
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+                        "historial" -> {
+                            HistorialScreen(
+                                viewModel = historialViewModel,
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+                    }
                 }
             }
         }

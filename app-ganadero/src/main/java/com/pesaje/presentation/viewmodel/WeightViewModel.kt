@@ -3,6 +3,8 @@ package com.pesaje.presentation.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pesaje.core.data.local.RegistroPesajeGanado
+import com.pesaje.core.data.local.RegistroPesajeGanadoDao
 import com.pesaje.domain.model.CattleWeighingState
 import com.pesaje.core.domain.model.WeightReading
 import com.pesaje.core.domain.repository.WeightRepository
@@ -18,7 +20,8 @@ private const val TAG = "PESAJE_VM"
 
 class WeightViewModel(
     private val repository: WeightRepository,
-    private val printCattleTicketUseCase: PrintCattleTicketUseCase
+    private val printCattleTicketUseCase: PrintCattleTicketUseCase,
+    private val registroDao: RegistroPesajeGanadoDao,
 ) : ViewModel() {
 
     private val _isConnected = MutableStateFlow(false)
@@ -150,10 +153,36 @@ class WeightViewModel(
             if (exito) {
                 _printStatus.value = "¡Ticket impreso con éxito!"
             } else {
-                _printStatus.value = "Error: No se pudo conectar a '$printerName' o falló la impresión."
+                _printStatus.value =
+                    "Error: No se pudo conectar a '$printerName' o falló la impresión."
             }
         }
     }
+
+    fun guardarRegistro(areteId: String, sexo: String) {
+        val pesoActual = currentWeight.value
+
+        if (pesoActual == null || areteId.isBlank()) {
+            Log.e(TAG, "❌ No se puede guardar: falta el peso o el arete")
+            return
+        }
+        viewModelScope.launch (Dispatchers.IO){
+            val registro = RegistroPesajeGanado(
+                arete = areteId,
+                sexo= sexo,
+                peso = pesoActual.kilograms,
+                fecha = obtenerFechaActual()
+            )
+            registroDao.insertar(registro)
+            Log.d(TAG, "✅ Registro guardado: $registro")
+        }
+    }
+
+    private fun obtenerFechaActual(): String {
+        val formato = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault())
+        return formato.format(java.util.Date())
+    }
+
 
     fun clearPrintStatus() {
         _printStatus.value = null

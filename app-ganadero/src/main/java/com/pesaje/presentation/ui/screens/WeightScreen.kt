@@ -36,7 +36,10 @@ import com.pesaje.presentation.ui.theme.SaveYellow
 import com.pesaje.presentation.viewmodel.WeightViewModel
 
 @Composable
-fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
+fun WeightScreen(
+    viewModel: WeightViewModel,
+    modifier: Modifier = Modifier,
+) {
     val isConnected by viewModel.isConnected.collectAsState()
     val currentWeight by viewModel.currentWeight.collectAsState()
 
@@ -328,7 +331,13 @@ fun WeightScreen(viewModel: WeightViewModel, modifier: Modifier = Modifier) {
 
         // ============ SECCIÓN 6: Acciones (Guardar e Imprimir) ============
         Button(
-            onClick = { /* Acción de Guardar */ },
+            onClick = {
+                viewModel.guardarRegistro(areteId, sexoSeleccionado)
+                // Limpiar el formulario después de guardar
+                areteId = ""
+                sexoSeleccionado = "Macho"
+                viewModel.resetCattleProcess()  // ya tienes esta función, reinicia el ciclo de captura
+            },
             enabled = areteId.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
