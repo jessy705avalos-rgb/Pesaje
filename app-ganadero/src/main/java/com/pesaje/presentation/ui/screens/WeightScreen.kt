@@ -330,49 +330,58 @@ fun WeightScreen(
         }
 
         // ============ SECCIÓN 6: Acciones (Guardar e Imprimir) ============
-        Button(
-            onClick = {
-                viewModel.guardarRegistro(areteId, sexoSeleccionado)
-                // Limpiar el formulario después de guardar
-                areteId = ""
-                sexoSeleccionado = "Macho"
-                viewModel.resetCattleProcess()  // ya tienes esta función, reinicia el ciclo de captura
-            },
-            enabled = areteId.isNotEmpty(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = SaveYellow,
-                contentColor = Color.Black
-            ),
-            shape = RoundedCornerShape(16.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(Icons.Default.Save, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Guardar", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        }
+            OutlinedButton(
+                onClick = {
+                    viewModel.guardarRegistro(
+                        areteId = areteId,
+                        sexo = sexoSeleccionado,
+                        imprimirDespues = false
+                    )
+                    areteId = ""
+                    sexoSeleccionado = "Macho"
+                    viewModel.resetCattleProcess()
+                },
+                enabled = areteId.trim().isNotEmpty(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Guardar sin Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
 
-        OutlinedButton(
-            onClick = {
-                val pesoAImprimir = lockedWeight ?: currentWeight?.kilograms
-                viewModel.printTicket(
-                    printerName = "Printer001",
-                    areteId = areteId,
-                    sexo = sexoSeleccionado,
-                    pesoKg = pesoAImprimir
-                )
-            },
-            enabled = areteId.trim()
-                .isNotEmpty(),// Deshabilita el botón si el arete está vacío (quitando espacios)
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Icon(Icons.Default.Print, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Imprimir Ticket", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Button(
+                onClick = {
+                    viewModel.guardarRegistro(
+                        areteId = areteId,
+                        sexo = sexoSeleccionado,
+                        imprimirDespues = true,
+                        printerName = "Printer001"
+                    )
+                    areteId = ""
+                    sexoSeleccionado = "Macho"
+                    viewModel.resetCattleProcess()
+                },
+                enabled = areteId.trim().isNotEmpty(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SaveYellow,
+                    contentColor = Color.Black
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Print, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Guardar e Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }

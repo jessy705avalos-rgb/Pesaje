@@ -78,49 +78,97 @@ class TicketPrinterHelper {
     }
 
     @Suppress("MissingPermission")
-    fun printTrailerTicket(
+    fun printTrailerEntradaTicket(
         socket: BluetoothSocket?,
-        placa: String,
-        chofer: String,
-        pesoBrutoKg: Double?,
-        taraKg: Double?
+        placas: String,
+        conductor: String,
+        carga: String,
+        pesoEntrada: Double,
+        fechaEntrada: String
     ): Boolean {
         if (socket == null || !socket.isConnected) return false
         return try {
             val outputStream: OutputStream = socket.outputStream
             val commands = ArrayList<Byte>()
 
-            // Reset y Alineación al centro
             commands.addAll(byteArrayOf(0x1B, 0x40).toTypedArray())
             commands.addAll(byteArrayOf(0x1B, 0x61, 0x01).toTypedArray())
 
-            // Título
             commands.addAll(byteArrayOf(0x1B, 0x45, 0x01).toTypedArray())
             commands.addAll(byteArrayOf(0x1D, 0x21, 0x11).toTypedArray())
-            commands.addAll("PESAJE DE TRÁILER\n\n".toByteArray(Charsets.ISO_8859_1).toTypedArray())
+            commands.addAll("ENTRADA TRAILER\n\n".toByteArray(Charsets.ISO_8859_1).toTypedArray())
 
-            // Formato normal
             commands.addAll(byteArrayOf(0x1B, 0x45, 0x00).toTypedArray())
             commands.addAll(byteArrayOf(0x1D, 0x21, 0x00).toTypedArray())
 
-            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-            val fechaActual = dateFormat.format(Date())
-
-            val brutoStr = pesoBrutoKg?.let { String.format(Locale.US, "%.1f", it) } ?: "--.-"
-            val taraStr = taraKg?.let { String.format(Locale.US, "%.1f", it) } ?: "--.-"
-            val netoVal = if (pesoBrutoKg != null && taraKg != null) pesoBrutoKg - taraKg else null
-            val netoStr = netoVal?.let { String.format(Locale.US, "%.1f", it) } ?: "--.-"
+            val pesoStr = String.format(Locale.US, "%.1f", pesoEntrada)
 
             val ticketContent = StringBuilder().apply {
                 append("--------------------------------\n\n")
-                if (placa.trim().isNotEmpty()) append("Placa:  ${placa.trim()}\n")
-                if (chofer.trim().isNotEmpty()) append("Chofer: ${chofer.trim()}\n")
-                append("Peso Bruto: $brutoStr kg\n")
-                append("Tara:     $taraStr kg\n")
-                append("Peso Neto:  $netoStr kg\n")
-                append("Fecha:    $fechaActual\n\n")
+                if (placas.trim().isNotEmpty()) append("Placas: ${placas.trim()}\n")
+                if (conductor.trim().isNotEmpty()) append("Conductor(a): ${conductor.trim()}\n")
+                if (carga.trim().isNotEmpty()) append("Carga: ${carga.trim()}\n")
+                append("Peso: $pesoStr kg\n")
+                append("Fecha de entrada: $fechaEntrada\n\n")
                 append("--------------------------------\n\n")
-                append("Gracias por su preferencia\n\n\n\n")
+                append("Conserve su ticket\n\n\n\n")
+            }.toString()
+
+            commands.addAll(ticketContent.toByteArray(Charsets.ISO_8859_1).toTypedArray())
+            commands.addAll(byteArrayOf(0x1D, 0x56, 0x41, 0x10).toTypedArray())
+
+            outputStream.write(commands.toByteArray())
+            outputStream.flush()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    @Suppress("MissingPermission")
+    fun printTrailerSalidaTicket(
+        socket: BluetoothSocket?,
+        placas: String,
+        conductor: String,
+        carga: String,
+        pesoEntrada: Double,
+        fechaEntrada: String,
+        pesoSalida: Double,
+        fechaSalida: String,
+        pesoNeto: Double
+    ): Boolean {
+        if (socket == null || !socket.isConnected) return false
+        return try {
+            val outputStream: OutputStream = socket.outputStream
+            val commands = ArrayList<Byte>()
+
+            commands.addAll(byteArrayOf(0x1B, 0x40).toTypedArray())
+            commands.addAll(byteArrayOf(0x1B, 0x61, 0x01).toTypedArray())
+
+            commands.addAll(byteArrayOf(0x1B, 0x45, 0x01).toTypedArray())
+            commands.addAll(byteArrayOf(0x1D, 0x21, 0x11).toTypedArray())
+            commands.addAll("SALIDA TRAILER\n\n".toByteArray(Charsets.ISO_8859_1).toTypedArray())
+
+            commands.addAll(byteArrayOf(0x1B, 0x45, 0x00).toTypedArray())
+            commands.addAll(byteArrayOf(0x1D, 0x21, 0x00).toTypedArray())
+
+            val entradaStr = String.format(Locale.US, "%.1f", pesoEntrada)
+            val salidaStr = String.format(Locale.US, "%.1f", pesoSalida)
+            val netoStr = String.format(Locale.US, "%.2f", pesoNeto)
+
+            val ticketContent = StringBuilder().apply {
+                append("--------------------------------\n\n")
+                if (placas.trim().isNotEmpty()) append("Placas: ${placas.trim()}\n")
+                if (conductor.trim().isNotEmpty()) append("Conductor(a): ${conductor.trim()}\n")
+                if (carga.trim().isNotEmpty()) append("Carga: ${carga.trim()}\n\n")
+                append("Fecha de entrada: $fechaEntrada\n")
+                append("Fecha de salida: $fechaSalida\n\n")
+                append("Peso de entrada: $entradaStr kg\n")
+                append("Peso de salida: $salidaStr kg\n")
+                append("Peso Neto: $netoStr kg\n\n")
+                append("--------------------------------\n\n")
+                append("Regrese pronto\n\n\n\n")
             }.toString()
 
             commands.addAll(ticketContent.toByteArray(Charsets.ISO_8859_1).toTypedArray())

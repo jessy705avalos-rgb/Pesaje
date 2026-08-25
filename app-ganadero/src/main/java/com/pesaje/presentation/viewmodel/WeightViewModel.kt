@@ -134,47 +134,68 @@ class WeightViewModel(
         _lockedWeight.value = null
     }
 
-    fun printTicket(
-        printerName: String,
+//    fun printTicket(
+//        printerName: String,
+//        areteId: String,
+//        sexo: String,
+//        pesoKg: Double?
+//    ) {
+//        viewModelScope.launch(Dispatchers.IO) {
+//            _printStatus.value = "Imprimiendo ticket..."
+//
+//            val exito = printCattleTicketUseCase(
+//                printerName = printerName,
+//                areteId = areteId,
+//                sexo = sexo,
+//                pesoKg = pesoKg
+//            )
+//
+//            if (exito) {
+//                _printStatus.value = "¡Ticket impreso con éxito!"
+//            } else {
+//                _printStatus.value =
+//                    "Error: No se pudo conectar a '$printerName' o falló la impresión."
+//            }
+//        }
+//    }
+
+    fun guardarRegistro(
         areteId: String,
         sexo: String,
-        pesoKg: Double?
+        imprimirDespues: Boolean,
+        printerName: String = "Printer001"
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _printStatus.value = "Imprimiendo ticket..."
+        val pesoAGuardar = lockedWeight.value ?: currentWeight.value?.kilograms
 
-            val exito = printCattleTicketUseCase(
-                printerName = printerName,
-                areteId = areteId,
-                sexo = sexo,
-                pesoKg = pesoKg
-            )
-
-            if (exito) {
-                _printStatus.value = "¡Ticket impreso con éxito!"
-            } else {
-                _printStatus.value =
-                    "Error: No se pudo conectar a '$printerName' o falló la impresión."
-            }
-        }
-    }
-
-    fun guardarRegistro(areteId: String, sexo: String) {
-        val pesoActual = currentWeight.value
-
-        if (pesoActual == null || areteId.isBlank()) {
+        if (pesoAGuardar == null || areteId.isBlank()) {
             Log.e(TAG, "❌ No se puede guardar: falta el peso o el arete")
             return
         }
-        viewModelScope.launch (Dispatchers.IO){
+
+        viewModelScope.launch(Dispatchers.IO) {
             val registro = RegistroPesajeGanado(
                 arete = areteId,
-                sexo= sexo,
-                peso = pesoActual.kilograms,
+                sexo = sexo,
+                peso = pesoAGuardar,
                 fecha = obtenerFechaActual()
             )
             registroDao.insertar(registro)
             Log.d(TAG, "✅ Registro guardado: $registro")
+
+            if (imprimirDespues) {
+                _printStatus.value = "Imprimiendo ticket..."
+                val exito = printCattleTicketUseCase(
+                    printerName = printerName,
+                    areteId = areteId,
+                    sexo = sexo,
+                    pesoKg = pesoAGuardar
+                )
+                _printStatus.value = if (exito) {
+                    "¡Ticket impreso con éxito!"
+                } else {
+                    "Error: No se pudo conectar a '$printerName' o falló la impresión."
+                }
+            }
         }
     }
 

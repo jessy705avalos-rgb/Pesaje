@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.room.Room
 import com.pesaje.core.data.local.AppDatabase
 import com.pesaje.core.data.remote.PrinterBluetoothManager
+import com.pesaje.core.data.repositoryImpl.CsvExportRepositoryImpl
 import com.pesaje.core.data.repositoryImpl.PrinterRepositoryImpl
 import com.pesaje.core.domain.usecase.PrintCattleTicketUseCase
 import com.pesaje.presentation.ui.screens.HistorialScreen
@@ -72,7 +73,9 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             AppDatabase::class.java,
             "pesaje_ganado_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
     }
 
     private val registroDao by lazy { database.registroPesajeGanadoDao() }
@@ -85,8 +88,10 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val csvExportRepository by lazy { CsvExportRepositoryImpl() }
+
     private val historialViewModel by lazy {
-        HistorialViewModel(registroDao)
+        HistorialViewModel(registroDao, csvExportRepository)
     }
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->

@@ -1,6 +1,5 @@
 package com.pesaje.core.domain.repository
 
-
 interface PrinterRepository {
     suspend fun printCattleTicket(
         printerName: String,
@@ -9,11 +8,24 @@ interface PrinterRepository {
         pesoKg: Double?
     ): Boolean
 
-    suspend fun printTrailerTicket(
+    suspend fun printTrailerEntrada(
         printerName: String,
-        placa: String,
-        chofer: String,
-        pesoBrutoKg: Double?,
-        taraKg:Double?
+        placas: String,
+        conductor: String,
+        carga: String,
+        pesoEntrada: Double,
+        fechaEntrada: String
+    ): Boolean
+
+    suspend fun printTrailerSalida(
+        printerName: String,
+        placas: String,
+        conductor: String,
+        carga: String,
+        pesoEntrada: Double,
+        fechaEntrada: String,
+        pesoSalida: Double,
+        fechaSalida: String,
+        pesoNeto: Double
     ): Boolean
 }

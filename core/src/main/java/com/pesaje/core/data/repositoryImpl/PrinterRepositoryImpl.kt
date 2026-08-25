@@ -20,16 +20,37 @@ class PrinterRepositoryImpl(
         try { socket.close() } catch (_: Exception) {}
         return success
     }
-
-    override suspend fun printTrailerTicket(
+    override suspend fun printTrailerEntrada(
         printerName: String,
-        placa: String,
-        chofer: String,
-        pesoBrutoKg: Double?,
-        taraKg: Double?
+        placas: String,
+        conductor: String,
+        carga: String,
+        pesoEntrada: Double,
+        fechaEntrada: String
     ): Boolean {
         val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
-        val success = printerHelper.printTrailerTicket(socket, placa, chofer, pesoBrutoKg, taraKg)
+        val success = printerHelper.printTrailerEntradaTicket(
+            socket, placas, conductor, carga, pesoEntrada, fechaEntrada
+        )
+        try { socket.close() } catch (_: Exception) {}
+        return success
+    }
+
+    override suspend fun printTrailerSalida(
+        printerName: String,
+        placas: String,
+        conductor: String,
+        carga: String,
+        pesoEntrada: Double,
+        fechaEntrada: String,
+        pesoSalida: Double,
+        fechaSalida: String,
+        pesoNeto: Double
+    ): Boolean {
+        val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
+        val success = printerHelper.printTrailerSalidaTicket(
+            socket, placas, conductor, carga, pesoEntrada, fechaEntrada, pesoSalida, fechaSalida, pesoNeto
+        )
         try { socket.close() } catch (_: Exception) {}
         return success
     }

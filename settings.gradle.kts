@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "Pesaje"
 include(":app-ganadero")
 include(":core")
+include(":app-camionero")

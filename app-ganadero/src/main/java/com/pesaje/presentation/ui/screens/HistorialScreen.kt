@@ -50,7 +50,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pesaje.core.data.local.RegistroPesajeGanado
 import com.pesaje.presentation.ui.theme.ConnectedGreen
-import com.pesaje.presentation.ui.utils.CsvExporter
 import com.pesaje.presentation.viewmodel.HistorialViewModel
 import kotlinx.coroutines.launch
 
@@ -124,11 +123,7 @@ fun HistorialScreen(
                     val nombreFinal = nombreArchivo.trim()
                     if (nombreFinal.isNotEmpty()) {
                         mostrarDialogoExportar = false
-                        CsvExporter.exportarYCompartir(
-                            context = context,
-                            nombreArchivo = nombreFinal,
-                            registros = registros
-                        )
+                        viewModel.exportarRegistros(context, nombreFinal)
                     } else {
                         Toast.makeText(context, "Escribe un nombre válido", Toast.LENGTH_SHORT).show()
                     }
