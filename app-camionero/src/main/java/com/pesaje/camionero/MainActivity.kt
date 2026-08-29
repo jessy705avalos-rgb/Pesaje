@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.room.Room
+import com.pesaje.camionero.data.repositoryImpl.TrailerRepositoryImpl
 import com.pesaje.camionero.presentation.ui.screens.EntradaScreen
 import com.pesaje.camionero.presentation.ui.theme.PesajeTheme
 import com.pesaje.camionero.presentation.viewmodel.TrailerViewModel
@@ -64,12 +65,13 @@ class MainActivity : ComponentActivity() {
             .build()
     }
     private val registroDao by lazy { database.registroPesajeTrailerDao() }
+    private val trailerRepository by lazy { TrailerRepositoryImpl(registroDao) }
 
     // ---------- ViewModel ----------
     private val viewModel by lazy {
         TrailerViewModel(
             repository = weightRepository,
-            registroDao = registroDao,
+            trailerRepository= trailerRepository,
             printTrailerEntradaUseCase = printTrailerEntradaUseCase,
             printTrailerSalidaUseCase = printTrailerSalidaUseCase
         )

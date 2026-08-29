@@ -134,31 +134,6 @@ class WeightViewModel(
         _lockedWeight.value = null
     }
 
-//    fun printTicket(
-//        printerName: String,
-//        areteId: String,
-//        sexo: String,
-//        pesoKg: Double?
-//    ) {
-//        viewModelScope.launch(Dispatchers.IO) {
-//            _printStatus.value = "Imprimiendo ticket..."
-//
-//            val exito = printCattleTicketUseCase(
-//                printerName = printerName,
-//                areteId = areteId,
-//                sexo = sexo,
-//                pesoKg = pesoKg
-//            )
-//
-//            if (exito) {
-//                _printStatus.value = "¡Ticket impreso con éxito!"
-//            } else {
-//                _printStatus.value =
-//                    "Error: No se pudo conectar a '$printerName' o falló la impresión."
-//            }
-//        }
-//    }
-
     fun guardarRegistro(
         areteId: String,
         sexo: String,
@@ -195,6 +170,8 @@ class WeightViewModel(
                 } else {
                     "Error: No se pudo conectar a '$printerName' o falló la impresión."
                 }
+            }else {
+                _printStatus.value = "Registro guardado correctamente"
             }
         }
     }
