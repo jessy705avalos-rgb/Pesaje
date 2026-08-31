@@ -10,11 +10,24 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.room.Room
 import com.pesaje.camionero.data.repositoryImpl.TrailerRepositoryImpl
 import com.pesaje.camionero.presentation.ui.screens.EntradaScreen
+import com.pesaje.camionero.presentation.ui.screens.MainScreen
+import com.pesaje.camionero.presentation.ui.screens.SalidaScreen
 import com.pesaje.camionero.presentation.ui.theme.PesajeTheme
 import com.pesaje.camionero.presentation.viewmodel.TrailerViewModel
 import com.pesaje.core.data.local.AppDatabase
@@ -71,7 +84,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel by lazy {
         TrailerViewModel(
             repository = weightRepository,
-            trailerRepository= trailerRepository,
+            trailerRepository = trailerRepository,
             printTrailerEntradaUseCase = printTrailerEntradaUseCase,
             printTrailerSalidaUseCase = printTrailerSalidaUseCase
         )
@@ -96,12 +109,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PesajeTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    EntradaScreen(
-                        viewModel = viewModel,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                MainScreen(viewModel= viewModel)
             }
         }
     }

@@ -66,37 +66,32 @@ fun HistorialScreen(
     var mostrarDialogoExportar by remember { mutableStateOf(false) }
     var nombreArchivo by remember { mutableStateOf("") }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Registros") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ConnectedGreen,
-                    titleContentColor = Color.White,
-                    actionIconContentColor = Color.White
-                ),
-                actions = {
-                    IconButton(onClick = {
-                        if (registros.isEmpty()) {
-                            Toast.makeText(context, "No hay registros para exportar", Toast.LENGTH_SHORT).show()
-                        } else {
-                            nombreArchivo = "registros_pesaje"
-                            mostrarDialogoExportar = true
-                        }
-                    }) {
-                        Icon(Icons.Default.FileUpload, contentDescription = "Exportar")
+    Column(modifier = modifier.fillMaxSize()) {
+        TopAppBar(
+            title = { Text("Registros") },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = ConnectedGreen,
+                titleContentColor = Color.White,
+                actionIconContentColor = Color.White
+            ),
+            actions = {
+                IconButton(onClick = {
+                    if (registros.isEmpty()) {
+                        Toast.makeText(context, "No hay registros para exportar", Toast.LENGTH_SHORT).show()
+                    } else {
+                        nombreArchivo = "registros_pesaje"
+                        mostrarDialogoExportar = true
                     }
-                    IconButton(onClick = { mostrarDialogoBorrar = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Borrar todo")
-                    }
+                }) {
+                    Icon(Icons.Default.FileUpload, contentDescription = "Exportar")
                 }
-            )
-        }
-    ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            TablaRegistros(registros = registros)
-        }
+                IconButton(onClick = { mostrarDialogoBorrar = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Borrar todo")
+                }
+            }
+        )
+
+        TablaRegistros(registros = registros)
     }
 
     // Diálogo de confirmación para exportar a CSV
