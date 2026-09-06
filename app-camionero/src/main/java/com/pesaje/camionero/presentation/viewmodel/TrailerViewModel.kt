@@ -98,6 +98,7 @@ class TrailerViewModel(
             )
             trailerRepository.registrarEntrada(registro)
             Log.d(TAG, "✅ Entrada registrada: $registro")
+            _currentWeight.value= null                              //limpiamos el peso
 
             if (imprimirDespues) {
                 _mensaje.value = "Imprimiendo ticket..."
@@ -138,6 +139,7 @@ class TrailerViewModel(
             )
             trailerRepository.registrarSalida(registroActualizado)
             Log.d(TAG, "✅ Salida registrada. Neto: $pesoNeto kg")
+            _currentWeight.value = null
 
             if (imprimirDespues) {
                 val exito = printTrailerSalidaUseCase(

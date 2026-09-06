@@ -48,7 +48,7 @@ fun SalidaScreen(
 
     // ---------- Datos que solo le importan a ESTA pantalla mientras el usuario interactúa ----------
     var expandido by remember { mutableStateOf(false) }
-    var placaElegida by remember { mutableStateOf("") }
+    var placaElegida by remember { mutableStateOf(vehiculoSeleccionado?.placas ?: "") }
 
     // ---------- Mostrar Toast cuando el ViewModel tenga un mensaje ----------
     val context = LocalContext.current
@@ -69,34 +69,28 @@ fun SalidaScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // ============ SECCIÓN 1: Encabezado ============
+// ============ SECCIÓN 1: Encabezado ============
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "Logo LebenPro",
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                )
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "LEBENPRO",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Registrar Salida",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+            // Esquina izquierda: Solo el texto LEBENPRO
+            Text(
+                text = "LEBENPRO",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Centro: Título principal de la pantalla
+            Text(
+                text = "Registrar Salida",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Esquina derecha: Botón de Configuración
             IconButton(
                 onClick = { /* pendiente */ },
                 modifier = Modifier

@@ -156,6 +156,7 @@ class WeightViewModel(
             )
             registroDao.insertar(registro)
             Log.d(TAG, "✅ Registro guardado: $registro")
+            _currentWeight.value = null
 
             if (imprimirDespues) {
                 _printStatus.value = "Imprimiendo ticket..."
