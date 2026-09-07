@@ -3,17 +3,21 @@ package com.pesaje.camionero.presentation.ui.screens
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import com.pesaje.camionero.presentation.viewmodel.HistorialTrailerViewModel
 import com.pesaje.camionero.presentation.viewmodel.TrailerViewModel
 
 @Composable
 fun MainScreen(
     viewModel: TrailerViewModel,
+    historialTrailerViewModel: HistorialTrailerViewModel,
     modifier: Modifier = Modifier
 ) {
     // Preserva la pantalla seleccionada tras rotaciones de pantalla
@@ -35,6 +39,12 @@ fun MainScreen(
                     icon = { Icon(Icons.Default.ArrowUpward, contentDescription = "Salidas") },
                     label = { Text("Salidas") }
                 )
+                NavigationBarItem(
+                    selected = pantallaActual == "historial",
+                    onClick = { pantallaActual = "historial" },
+                    icon = { Icon(Icons.Default.List, contentDescription = "Historial") },
+                    label = { Text("Historial") }
+                )
             }
         }
     ) { innerPadding ->
@@ -45,10 +55,19 @@ fun MainScreen(
                     modifier = Modifier.padding(innerPadding)
                 )
             }
+
             "salida" -> {
                 SalidaScreen(
                     viewModel = viewModel,
                     modifier = Modifier.padding(innerPadding)
+                )
+            }
+
+            "historial" -> {
+                HistorialTrailerScreen(
+                    viewModel = historialTrailerViewModel,
+                    modifier = Modifier.padding(innerPadding)
+
                 )
             }
         }

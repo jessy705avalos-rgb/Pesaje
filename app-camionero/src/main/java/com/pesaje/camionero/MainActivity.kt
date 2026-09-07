@@ -24,11 +24,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.room.Room
+import com.pesaje.camionero.data.repositoryImpl.CsvExportTrailerRepositoryImpl
 import com.pesaje.camionero.data.repositoryImpl.TrailerRepositoryImpl
 import com.pesaje.camionero.presentation.ui.screens.EntradaScreen
 import com.pesaje.camionero.presentation.ui.screens.MainScreen
 import com.pesaje.camionero.presentation.ui.screens.SalidaScreen
 import com.pesaje.camionero.presentation.ui.theme.PesajeTheme
+import com.pesaje.camionero.presentation.viewmodel.HistorialTrailerViewModel
 import com.pesaje.camionero.presentation.viewmodel.TrailerViewModel
 import com.pesaje.core.data.local.AppDatabase
 import com.pesaje.core.data.remote.PrinterBluetoothManager
@@ -79,8 +81,15 @@ class MainActivity : ComponentActivity() {
     }
     private val registroDao by lazy { database.registroPesajeTrailerDao() }
     private val trailerRepository by lazy { TrailerRepositoryImpl(registroDao) }
+    private val csvExportTrailerRepository by lazy { CsvExportTrailerRepositoryImpl() }
 
     // ---------- ViewModel ----------
+    private val historialTrailerViewModel by lazy {
+        HistorialTrailerViewModel(
+            trailerRepository = trailerRepository,
+            csvExportTrailerRepository = csvExportTrailerRepository
+        )
+    }
     private val viewModel by lazy {
         TrailerViewModel(
             repository = weightRepository,
@@ -89,6 +98,7 @@ class MainActivity : ComponentActivity() {
             printTrailerSalidaUseCase = printTrailerSalidaUseCase
         )
     }
+
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
@@ -109,7 +119,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PesajeTheme {
-                MainScreen(viewModel= viewModel)
+                MainScreen(
+                    viewModel = viewModel,
+                    historialTrailerViewModel = historialTrailerViewModel
+                )
             }
         }
     }
