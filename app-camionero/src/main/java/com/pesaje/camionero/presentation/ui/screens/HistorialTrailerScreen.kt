@@ -16,10 +16,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -44,6 +47,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pesaje.camionero.presentation.ui.theme.ConnectedGreen
@@ -61,6 +67,8 @@ fun HistorialTrailerScreen(
     val context = LocalContext.current
 
     var mostrarDialogoBorrar by remember { mutableStateOf(false) }
+    var passwordInput by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var mostrarDialogoExportar by remember { mutableStateOf(false) }
     var nombreArchivo by remember { mutableStateOf("") }
 
@@ -75,7 +83,11 @@ fun HistorialTrailerScreen(
             actions = {
                 IconButton(onClick = {
                     if (registros.isEmpty()) {
-                        Toast.makeText(context, "No hay registros para exportar", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "No hay registros para exportar",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
                         nombreArchivo = "registros_trailer"
                         mostrarDialogoExportar = true
@@ -118,7 +130,8 @@ fun HistorialTrailerScreen(
                         mostrarDialogoExportar = false
                         viewModel.exportarRegistros(context, nombreFinal)
                     } else {
-                        Toast.makeText(context, "Escribe un nombre válido", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Escribe un nombre válido", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }) {
                     Text("Aceptar")
@@ -135,26 +148,67 @@ fun HistorialTrailerScreen(
     // Diálogo de confirmación para borrar
     if (mostrarDialogoBorrar) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogoBorrar = false },
-            title = { Text("Confirmación") },
-            text = { Text("¿Está seguro que desea borrar todos los registros? Esta acción no se puede deshacer.") },
+            onDismissRequest = {
+                mostrarDialogoBorrar = false
+                passwordInput = ""
+            },
+            title = { Text("Confirmación de seguridad") },
+            text = {
+                Column {
+                    Text("Ingresa la contraseña para borrar todos los registros:")
+                    OutlinedTextField(
+                        value = passwordInput,
+                        onValueChange = { passwordInput = it },
+                        label = { Text("Contraseña") },
+                        singleLine = true,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        trailingIcon = {
+                            val image =
+                                if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = image, contentDescription = null)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.borrarTodos()
-                    mostrarDialogoBorrar = false
+                    if (passwordInput.isNotBlank()) {
+                        viewModel.borrarTodos(
+                            passwordIngresada = passwordInput,
+                            onSuccess = {
+                                Toast.makeText(context, "Registros eliminados", Toast.LENGTH_SHORT)
+                                    .show()
+                                mostrarDialogoBorrar = false
+                                passwordInput = ""
+                            },
+                            onError = { mensaje ->
+                                Toast.makeText(context, mensaje, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } else {
+                        Toast.makeText(context, "Ingresa la contraseña", Toast.LENGTH_SHORT).show()
+                    }
                 }) {
-                    Text("Borrar")
+                    Text("Borrar", color = Color.Red)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogoBorrar = false }) {
+                TextButton(onClick = {
+                    mostrarDialogoBorrar = false
+                    passwordInput = ""
+                }) {
                     Text("Cancelar")
                 }
             }
         )
     }
 }
-
 @Composable
 private fun TablaRegistrosTrailer(registros: List<RegistroPesajeTrailer>) {
     val scrollHorizontal = rememberScrollState()

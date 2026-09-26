@@ -23,12 +23,21 @@ class HistorialTrailerViewModel(
             initialValue = emptyList()
         )
 
-    fun borrarTodos() {
-        viewModelScope.launch {
-            trailerRepository.borrarTodos()
+    // Validamos la contraseña aquí mismo antes de llamar al repositorio
+    fun borrarTodos(
+        passwordIngresada: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (passwordIngresada == "1111") {
+            viewModelScope.launch {
+                trailerRepository.borrarTodos()
+                onSuccess()
+            }
+        } else {
+            onError("Contraseña incorrecta")
         }
     }
-
     fun exportarRegistros(context: Context, nombreArchivo: String) {
         csvExportTrailerRepository.exportarYCompartir(
             context = context,

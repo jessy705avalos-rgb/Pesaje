@@ -89,7 +89,7 @@ fun WeightScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Control de Pesaje",
+                        text = "Ganadero",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )

@@ -18,10 +18,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -47,6 +50,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.pesaje.core.data.local.RegistroPesajeGanado
 import com.pesaje.presentation.ui.theme.ConnectedGreen
@@ -63,6 +69,8 @@ fun HistorialScreen(
     val context = LocalContext.current
 
     var mostrarDialogoBorrar by remember { mutableStateOf(false) }
+    var passwordInput by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var mostrarDialogoExportar by remember { mutableStateOf(false) }
     var nombreArchivo by remember { mutableStateOf("") }
 
@@ -77,7 +85,11 @@ fun HistorialScreen(
             actions = {
                 IconButton(onClick = {
                     if (registros.isEmpty()) {
-                        Toast.makeText(context, "No hay registros para exportar", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "No hay registros para exportar",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
                         nombreArchivo = "registros_pesaje"
                         mostrarDialogoExportar = true
@@ -120,7 +132,8 @@ fun HistorialScreen(
                         mostrarDialogoExportar = false
                         viewModel.exportarRegistros(context, nombreFinal)
                     } else {
-                        Toast.makeText(context, "Escribe un nombre válido", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Escribe un nombre válido", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }) {
                     Text("Aceptar")
@@ -134,22 +147,65 @@ fun HistorialScreen(
         )
     }
 
+// Diálogo de confirmación para borrar con contraseña "1111"
     // Diálogo de confirmación para borrar
     if (mostrarDialogoBorrar) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogoBorrar = false },
-            title = { Text("Confirmación") },
-            text = { Text("¿Está seguro que desea borrar todos los registros? Esta acción no se puede deshacer.") },
+            onDismissRequest = {
+                mostrarDialogoBorrar = false
+                passwordInput = ""
+            },
+            title = { Text("Confirmación de seguridad") },
+            text = {
+                Column {
+                    Text("Ingresa la contraseña para borrar todos los registros:")
+                    OutlinedTextField(
+                        value = passwordInput,
+                        onValueChange = { passwordInput = it },
+                        label = { Text("Contraseña") },
+                        singleLine = true,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        trailingIcon = {
+                            val image =
+                                if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = image, contentDescription = null)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.borrarTodos()
-                    mostrarDialogoBorrar = false
+                    if (passwordInput.isNotBlank()) {
+                        viewModel.borrarTodos(
+                            passwordIngresada = passwordInput,
+                            onSuccess = {
+                                Toast.makeText(context, "Registros eliminados", Toast.LENGTH_SHORT)
+                                    .show()
+                                mostrarDialogoBorrar = false
+                                passwordInput = ""
+                            },
+                            onError = { mensaje ->
+                                Toast.makeText(context, mensaje, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } else {
+                        Toast.makeText(context, "Ingresa la contraseña", Toast.LENGTH_SHORT).show()
+                    }
                 }) {
-                    Text("Borrar")
+                    Text("Borrar", color = Color.Red)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogoBorrar = false }) {
+                TextButton(onClick = {
+                    mostrarDialogoBorrar = false
+                    passwordInput = ""
+                }) {
                     Text("Cancelar")
                 }
             }
@@ -248,10 +304,34 @@ private fun BarraDeScroll(scrollState: androidx.compose.foundation.ScrollState) 
 @Composable
 private fun FilaEncabezado(anchoArete: androidx.compose.ui.unit.Dp) {
     Row(modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)) {
-        Text("ID", modifier = Modifier.width(50.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold)
-        Text("Arete", modifier = Modifier.width(anchoArete).padding(end = 16.dp), fontWeight = FontWeight.Bold)
-        Text("Sexo", modifier = Modifier.width(80.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold)
-        Text("Peso", modifier = Modifier.width(100.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold)
+        Text(
+            "ID",
+            modifier = Modifier
+                .width(50.dp)
+                .padding(end = 16.dp),
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Arete",
+            modifier = Modifier
+                .width(anchoArete)
+                .padding(end = 16.dp),
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Sexo",
+            modifier = Modifier
+                .width(80.dp)
+                .padding(end = 16.dp),
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Peso",
+            modifier = Modifier
+                .width(100.dp)
+                .padding(end = 16.dp),
+            fontWeight = FontWeight.Bold
+        )
         Text("Fecha", modifier = Modifier.width(180.dp), fontWeight = FontWeight.Bold)
     }
 }
@@ -259,10 +339,26 @@ private fun FilaEncabezado(anchoArete: androidx.compose.ui.unit.Dp) {
 @Composable
 private fun FilaRegistro(registro: RegistroPesajeGanado, anchoArete: androidx.compose.ui.unit.Dp) {
     Row(modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)) {
-        Text("${registro.id}", modifier = Modifier.width(50.dp).padding(end = 16.dp), maxLines = 1)
-        Text(registro.arete, modifier = Modifier.width(anchoArete).padding(end = 16.dp), maxLines = 1)
-        Text(registro.sexo, modifier = Modifier.width(80.dp).padding(end = 16.dp), maxLines = 1)
-        Text("${registro.peso} kg", modifier = Modifier.width(100.dp).padding(end = 16.dp), maxLines = 1)
+        Text("${registro.id}", modifier = Modifier
+            .width(50.dp)
+            .padding(end = 16.dp), maxLines = 1)
+        Text(
+            registro.arete,
+            modifier = Modifier
+                .width(anchoArete)
+                .padding(end = 16.dp),
+            maxLines = 1
+        )
+        Text(registro.sexo, modifier = Modifier
+            .width(80.dp)
+            .padding(end = 16.dp), maxLines = 1)
+        Text(
+            "${registro.peso} kg",
+            modifier = Modifier
+                .width(100.dp)
+                .padding(end = 16.dp),
+            maxLines = 1
+        )
         Text(registro.fecha, modifier = Modifier.width(180.dp), maxLines = 1)
     }
 }

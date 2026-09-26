@@ -25,9 +25,18 @@ class HistorialViewModel(
             initialValue = emptyList()
         )
 
-    fun borrarTodos() {
-        viewModelScope.launch {            //Dentro del territorio de vida de este ViewModel, abre una tarea nueva que borre todos los registros.
-            registroDao.borrarTodos()
+    fun borrarTodos(
+        passwordIngresada: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (passwordIngresada == "1111") {
+            viewModelScope.launch {
+                registroDao.borrarTodos()
+                onSuccess()
+            }
+        } else {
+            onError("Contraseña incorrecta")
         }
     }
 

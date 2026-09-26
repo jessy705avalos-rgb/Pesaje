@@ -27,7 +27,12 @@ class CsvExportRepositoryImpl : CsvExportRepository {
 
         try {
             val writer = FileWriter(file)
-            writer.append("ID,Arete,Sexo,Peso (kg),Fecha,Hora\\n")
+
+            // 1. BOM para asegurar que Excel reconozca codificación UTF-8 correctamente (acentos, caracteres)
+            writer.write("\uFEFF")
+
+            // 2. Encabezados limpios con salto de línea estándar (\n)
+            writer.append("ID,Arete,Sexo,Peso (kg),Fecha,Hora\n")
 
             registros.forEach { registro ->
                 val textoFecha = registro.fecha.trim()
@@ -37,7 +42,8 @@ class CsvExportRepositoryImpl : CsvExportRepository {
                 val horaSolo =
                     if (espacioIndex != -1) textoFecha.substring(espacioIndex + 1) else ""
 
-                writer.append("\${registro.id},\\\"\${registro.arete}\\\",\\\"\${registro.sexo}\\\",\${registro.peso},\\\"\$fechaSolo\\\",\\\"\$horaSolo\\\"\\n")
+                // 3. Eliminación de dobles barras invertidas en comillas y salto de línea
+                writer.append("${registro.id},\"${registro.arete}\",\"${registro.sexo}\",${registro.peso},\"$fechaSolo\",\"$horaSolo\"\n")
             }
 
             writer.flush()
@@ -48,8 +54,10 @@ class CsvExportRepositoryImpl : CsvExportRepository {
                 "${context.packageName}.fileprovider",
                 file
             )
+
+            // 4. Tipo MIME estándar para compatibilidad con aplicaciones de hojas de cálculo
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/comma-separated-values"
+                type = "text/csv"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
