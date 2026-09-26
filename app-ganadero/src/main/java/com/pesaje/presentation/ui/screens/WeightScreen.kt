@@ -7,11 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
-import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Balance
@@ -24,10 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pesaje.domain.model.CattleWeighingState
-import com.pesaje.domain.model.WeighingMode
 import com.pesaje.pesaje.R
 import com.pesaje.presentation.ui.theme.CardBackground
 import com.pesaje.presentation.ui.theme.ConnectedGreen
@@ -43,21 +42,19 @@ fun WeightScreen(
     val isConnected by viewModel.isConnected.collectAsState()
     val currentWeight by viewModel.currentWeight.collectAsState()
 
-    val cattleState by viewModel.cattleState.collectAsState()
-    val lockedWeight by viewModel.lockedWeight.collectAsState()
-
-    // Estados locales para el formulario de ganado
     var areteId by remember { mutableStateOf("") }
     var sexoSeleccionado by remember { mutableStateOf("Macho") }
 
     val context = LocalContext.current
     val printStatus by viewModel.printStatus.collectAsState()
+
     LaunchedEffect(printStatus) {
         printStatus?.let { mensaje ->
             Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
             viewModel.clearPrintStatus()
         }
     }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -158,7 +155,6 @@ fun WeightScreen(
         }
 
         // ============ SECCIÓN 3: Tarjeta de peso ============
-
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -171,35 +167,20 @@ fun WeightScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                val (statusText, statusColor) = when (cattleState) {
-                    CattleWeighingState.WAITING_FOR_ANIMAL -> "Esperando animal..." to Color.Gray
-                    CattleWeighingState.STABILIZING -> "⏳ Estabilizando peso..." to Color(
-                        0xFFE65100
-                    )
-
-                    CattleWeighingState.LOCKED -> "🎯 ¡PESO CAPTURADO!" to Color(0xFF2E7D32)
-                    CattleWeighingState.WAITING_FOR_EXIT -> "🔒 Peso Retenido (Espere a que baje)" to Color(
-                        0xFF1565C0
-                    )
-                }
-
                 Text(
-                    text = statusText,
+                    text = "Peso del ganado",
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = statusColor
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray
                 )
+
                 Spacer(modifier = Modifier.height(8.dp))
-
-                val displayWeight = lockedWeight ?: currentWeight?.kilograms
-
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = displayWeight?.let { "%.1f".format(it) } ?: "--.-",
+                        text = currentWeight?.kilograms?.let { "%.1f".format(it) } ?: "--.-",
                         fontSize = 52.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (lockedWeight != null) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
@@ -218,12 +199,8 @@ fun WeightScreen(
                         onClick = {},
                         label = { Text(if (currentWeight?.isStable == true) "ESTABLE" else "INESTABLE") },
                         colors = AssistChipDefaults.assistChipColors(
-                            containerColor = if (currentWeight?.isStable == true) Color(0xFFE8F5E9) else Color(
-                                0xFFFFF3CD
-                            ),
-                            labelColor = if (currentWeight?.isStable == true) Color(0xFF2E7D32) else Color(
-                                0xFF8A6D00
-                            )
+                            containerColor = if (currentWeight?.isStable == true) Color(0xFFE8F5E9) else Color(0xFFFFF3CD),
+                            labelColor = if (currentWeight?.isStable == true) Color(0xFF2E7D32) else Color(0xFF8A6D00)
                         )
                     )
                     AssistChip(
@@ -299,10 +276,16 @@ fun WeightScreen(
 
                 OutlinedTextField(
                     value = areteId,
-                    onValueChange = { areteId = it },
+                    onValueChange = { nuevoTexto ->
+                        val soloNumeros = nuevoTexto.filter { it.isDigit() }
+                        if (soloNumeros.length <= 12) {
+                            areteId = soloNumeros
+                        }
+                    },
                     label = { Text("Arete / ID") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(12.dp)
                 )
 
@@ -343,9 +326,8 @@ fun WeightScreen(
                     )
                     areteId = ""
                     sexoSeleccionado = "Macho"
-                    viewModel.resetCattleProcess()
                 },
-                enabled = areteId.trim().isNotEmpty(),
+                enabled = areteId.trim().isNotEmpty() && currentWeight?.kilograms != null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -366,9 +348,8 @@ fun WeightScreen(
                     )
                     areteId = ""
                     sexoSeleccionado = "Macho"
-                    viewModel.resetCattleProcess()
                 },
-                enabled = areteId.trim().isNotEmpty(),
+                enabled = areteId.trim().isNotEmpty() && currentWeight?.kilograms != null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -378,8 +359,6 @@ fun WeightScreen(
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Default.Print, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
                 Text("Guardar e Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
         }

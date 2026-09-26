@@ -43,8 +43,8 @@ class CsvExportRepositoryImpl : CsvExportRepository {
                     if (espacioIndex != -1) textoFecha.substring(espacioIndex + 1) else ""
 
                 // 3. Eliminación de dobles barras invertidas en comillas y salto de línea
-                writer.append("${registro.id},\"${registro.arete}\",\"${registro.sexo}\",${registro.peso},\"$fechaSolo\",\"$horaSolo\"\n")
-            }
+                val pesoFormateado = String.format(java.util.Locale.US, "%.1f", registro.peso)
+                writer.append("${registro.id},\"${registro.arete}\",\"${registro.sexo}\",$pesoFormateado,\"$fechaSolo\",\"$horaSolo\"\n")            }
 
             writer.flush()
             writer.close()

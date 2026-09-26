@@ -244,7 +244,7 @@ fun SalidaScreen(
 
                     Text("Conductor(a): ${vehiculo.conductor}")
                     Text("Carga de entrada: ${vehiculo.carga}")
-                    Text("Peso de entrada: ${vehiculo.pesoEntrada} kg")
+                    Text("Peso de entrada: ${vehiculo.pesoEntrada.toInt()} kg")
                 }
             }
         }
@@ -271,7 +271,7 @@ fun SalidaScreen(
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = currentWeight?.kilograms?.let { "%.1f".format(it) } ?: "--.-",
+                        text = currentWeight?.kilograms?.let { "%.0f".format(it) } ?: "--",
                         fontSize = 52.sp,
                         fontWeight = FontWeight.Bold
                     )

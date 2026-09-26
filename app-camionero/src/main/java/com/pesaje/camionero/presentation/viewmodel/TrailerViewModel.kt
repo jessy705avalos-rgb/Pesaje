@@ -154,9 +154,9 @@ class TrailerViewModel(
                     pesoNeto
                 )
                 _mensaje.value =
-                    if (exito) "Salida registrada e impresa. Neto: $pesoNeto kg" else "Salida registrada, pero falló la impresión"
+                    if (exito) "Salida registrada e impresa. Neto: ${pesoNeto.toInt()} kg" else "Salida registrada, pero falló la impresión"
             } else {
-                _mensaje.value = "Salida registrada. Peso neto: $pesoNeto kg"
+                _mensaje.value = "Salida registrada. Peso neto: ${pesoNeto.toInt()} kg"
             }
             _vehiculoSeleccionado.value = null
         }

@@ -101,7 +101,7 @@ class TicketPrinterHelper {
             commands.addAll(byteArrayOf(0x1B, 0x45, 0x00).toTypedArray())
             commands.addAll(byteArrayOf(0x1D, 0x21, 0x00).toTypedArray())
 
-            val pesoStr = String.format(Locale.US, "%.1f", pesoEntrada)
+            val pesoStr = String.format(Locale.US, "%.0f", pesoEntrada)
 
             val ticketContent = StringBuilder().apply {
                 append("--------------------------------\n\n")
@@ -153,9 +153,9 @@ class TicketPrinterHelper {
             commands.addAll(byteArrayOf(0x1B, 0x45, 0x00).toTypedArray())
             commands.addAll(byteArrayOf(0x1D, 0x21, 0x00).toTypedArray())
 
-            val entradaStr = String.format(Locale.US, "%.1f", pesoEntrada)
-            val salidaStr = String.format(Locale.US, "%.1f", pesoSalida)
-            val netoStr = String.format(Locale.US, "%.2f", pesoNeto)
+            val entradaStr = String.format(Locale.US, "%.0f", pesoEntrada)
+            val salidaStr = String.format(Locale.US, "%.0f", pesoSalida)
+            val netoStr = String.format(Locale.US, "%.0f", pesoNeto)
 
             val ticketContent = StringBuilder().apply {
                 append("--------------------------------\n\n")

@@ -180,7 +180,7 @@ fun EntradaScreen(
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = currentWeight?.kilograms?.let { "%.1f".format(it) } ?: "--.-",
+                        text = currentWeight?.kilograms?.let { "%.0f".format(it) } ?: "--",
                         fontSize = 52.sp,
                         fontWeight = FontWeight.Bold
                     )

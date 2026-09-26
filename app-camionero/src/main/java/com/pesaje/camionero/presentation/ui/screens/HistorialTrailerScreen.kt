@@ -349,9 +349,9 @@ private fun FilaRegistroTrailer(
         Text(registro.conductor, modifier = Modifier.width(anchoConductor).padding(end = 5.dp), maxLines = 1, softWrap = false)
         Text(registro.carga, modifier = Modifier.width(anchoCarga).padding(end = 5.dp), maxLines = 1, softWrap = false)
         Text(registro.fechaEntrada, modifier = Modifier.width(190.dp).padding(end = 16.dp), maxLines = 1, softWrap = false)
-        Text("${registro.pesoEntrada} kg", modifier = Modifier.width(120.dp).padding(end = 25.dp), maxLines = 1, softWrap = false)
+        Text("${registro.pesoEntrada.toInt()} kg", modifier = Modifier.width(120.dp).padding(end = 25.dp), maxLines = 1, softWrap = false)
         Text(registro.fechaSalida ?: "—", modifier = Modifier.width(190.dp).padding(end = 16.dp), maxLines = 1, softWrap = false)
-        Text(registro.pesoSalida?.let { "$it kg" } ?: "—", modifier = Modifier.width(120.dp).padding(end = 16.dp), maxLines = 1, softWrap = false)
+        Text(registro.pesoSalida?.let { "${it.toInt()} kg" } ?: "—", modifier = Modifier.width(120.dp).padding(end = 16.dp), maxLines = 1, softWrap = false)
         Text(if (registro.estaAbierto) "Abierto" else "Cerrado", modifier = Modifier.width(80.dp), maxLines = 1, softWrap = false)
     }
 }

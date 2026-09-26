@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pesaje.core.data.local.RegistroPesajeGanado
 import com.pesaje.core.data.local.RegistroPesajeGanadoDao
-import com.pesaje.domain.model.CattleWeighingState
 import com.pesaje.core.domain.model.WeightReading
 import com.pesaje.core.domain.repository.WeightRepository
 import com.pesaje.core.domain.usecase.PrintCattleTicketUseCase
@@ -30,27 +29,14 @@ class WeightViewModel(
     private val _currentWeight = MutableStateFlow<WeightReading?>(null)
     val currentWeight: StateFlow<WeightReading?> = _currentWeight.asStateFlow()
 
-    // Estado del proceso de pesaje de ganado
-    private val _cattleState = MutableStateFlow(CattleWeighingState.WAITING_FOR_ANIMAL)
-    val cattleState: StateFlow<CattleWeighingState> = _cattleState.asStateFlow()
-
-    // Peso retenido/congelado en pantalla (Hold)
-    private val _lockedWeight = MutableStateFlow<Double?>(null)
-    val lockedWeight: StateFlow<Double?> = _lockedWeight.asStateFlow()
-
-    // Umbral mínimo de peso para detectar un animal (en kg)
-    private val ANIMAL_THRESHOLD = 20.0
-
-    // Referencias a los trabajos activos
     private var connectionJob: Job? = null
     private var observeJob: Job? = null
 
-    // Estado de impresión
     private val _printStatus = MutableStateFlow<String?>(null)
     val printStatus: StateFlow<String?> = _printStatus.asStateFlow()
 
     fun connect() {
-        Log.d(TAG, "ViewModel.connect() llamado — cancelando escuchas anteriores si existían")
+        Log.d(TAG, "ViewModel.connect() llamado")
 
         connectionJob?.cancel()
         observeJob?.cancel()
@@ -65,73 +51,24 @@ class WeightViewModel(
         observeJob = viewModelScope.launch {
             Log.d(TAG, "Empezando a escuchar observeWeight()...")
             repository.observeWeight().collect { reading ->
-                Log.d(TAG, "Nuevo peso recibido en ViewModel: ${reading.kilograms} kg")
                 _currentWeight.value = reading
-                processWeightForCattle(reading)
-            }
-        }
-    }
-
-    // Lógica para la autocaptura en Modo Ganado
-    private fun processWeightForCattle(reading: WeightReading) {
-        val weight = reading.kilograms
-        val isStable = reading.isStable
-
-        when (_cattleState.value) {
-            CattleWeighingState.WAITING_FOR_ANIMAL -> {
-                if (weight >= ANIMAL_THRESHOLD) {
-                    Log.d(TAG, "🐄 Animal detectado ($weight kg). Estabilizando...")
-                    _cattleState.value = CattleWeighingState.STABILIZING
-                }
-            }
-
-            CattleWeighingState.STABILIZING -> {
-                if (weight < ANIMAL_THRESHOLD) {
-                    _cattleState.value = CattleWeighingState.WAITING_FOR_ANIMAL
-                } else if (isStable) {
-                    Log.d(TAG, "🎯 ¡Peso estable capturado!: $weight kg")
-                    _lockedWeight.value = weight
-                    _cattleState.value = CattleWeighingState.LOCKED
-                }
-            }
-
-            CattleWeighingState.LOCKED -> {
-                _cattleState.value = CattleWeighingState.WAITING_FOR_EXIT
-            }
-
-            CattleWeighingState.WAITING_FOR_EXIT -> {
-                if (weight < ANIMAL_THRESHOLD) {
-                    Log.d(TAG, "🔄 Animal bajó de la báscula. Reiniciando ciclo.")
-                    resetCattleProcess()
-                }
             }
         }
     }
 
     fun readWeight() {
-        Log.d(TAG, "ViewModel.readWeight() llamado")
+        Log.d(TAG, "ViewModel.readWeight() llamado - Solicitando trama al indicador")
         viewModelScope.launch {
             repository.requestWeight()
         }
     }
 
     fun setTare() {
-        Log.d(TAG, "ViewModel.setTare() llamado")
-        viewModelScope.launch {
-            repository.setTare()
-        }
+        viewModelScope.launch { repository.setTare() }
     }
 
     fun setZero() {
-        Log.d(TAG, "ViewModel.setZero() llamado")
-        viewModelScope.launch {
-            repository.setZero()
-        }
-    }
-
-    fun resetCattleProcess() {
-        _cattleState.value = CattleWeighingState.WAITING_FOR_ANIMAL
-        _lockedWeight.value = null
+        viewModelScope.launch { repository.setZero() }
     }
 
     fun guardarRegistro(
@@ -140,7 +77,7 @@ class WeightViewModel(
         imprimirDespues: Boolean,
         printerName: String = "Printer001"
     ) {
-        val pesoAGuardar = lockedWeight.value ?: currentWeight.value?.kilograms
+        val pesoAGuardar = currentWeight.value?.kilograms
 
         if (pesoAGuardar == null || areteId.isBlank()) {
             Log.e(TAG, "❌ No se puede guardar: falta el peso o el arete")
@@ -156,7 +93,6 @@ class WeightViewModel(
             )
             registroDao.insertar(registro)
             Log.d(TAG, "✅ Registro guardado: $registro")
-            _currentWeight.value = null
 
             if (imprimirDespues) {
                 _printStatus.value = "Imprimiendo ticket..."
@@ -171,7 +107,7 @@ class WeightViewModel(
                 } else {
                     "Error: No se pudo conectar a '$printerName' o falló la impresión."
                 }
-            }else {
+            } else {
                 _printStatus.value = "Registro guardado correctamente"
             }
         }
@@ -182,13 +118,11 @@ class WeightViewModel(
         return formato.format(java.util.Date())
     }
 
-
     fun clearPrintStatus() {
         _printStatus.value = null
     }
 
     override fun onCleared() {
-        Log.d(TAG, "ViewModel.onCleared() — desconectando")
         connectionJob?.cancel()
         observeJob?.cancel()
         repository.disconnect()

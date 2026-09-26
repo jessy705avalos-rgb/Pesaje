@@ -31,10 +31,13 @@ class CsvExportTrailerRepositoryImpl : CsvExportTrailerRepository {
             writer.append("ID,Placas,Conductor,Carga,Peso Entrada,Fecha Entrada,Peso Salida,Fecha Salida,Estado\n")
 
             registros.forEach { r ->
+                val entradaEnt = r.pesoEntrada.toInt()
+                val salidaEnt = r.pesoSalida?.toInt()?.toString() ?: ""
+
                 writer.append(
                     "${r.id},\"${r.placas}\",\"${r.conductor}\",\"${r.carga}\"," +
-                            "${r.pesoEntrada},\"${r.fechaEntrada}\"," +
-                            "${r.pesoSalida ?: ""},\"${r.fechaSalida ?: ""}\"," +
+                            "$entradaEnt,\"${r.fechaEntrada}\"," +
+                            "$salidaEnt,\"${r.fechaSalida ?: ""}\"," +
                             "${if (r.estaAbierto) "Abierto" else "Cerrado"}\n"
                 )
             }
