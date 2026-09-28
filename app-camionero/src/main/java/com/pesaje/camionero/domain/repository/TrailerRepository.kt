@@ -21,4 +21,10 @@ interface TrailerRepository {
 
     //6. borrar todos
     suspend fun borrarTodos()
+
+    //7.obtener ultimo trailer que entró para reimpresión
+    suspend fun obtenerUltimoEntrada(): RegistroPesajeTrailer?
+
+    //7.obtener ultimo trailer que salió para reimpresión
+    suspend fun obtenerUltimoSalida(): RegistroPesajeTrailer?
 }

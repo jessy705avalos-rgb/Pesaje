@@ -223,7 +223,7 @@ private fun TablaRegistrosTrailer(registros: List<RegistroPesajeTrailer>) {
     val maxCaracteresConductor = remember(registros) {
         registros.maxOfOrNull { it.conductor.length } ?:0
     }
-    val anchoConductor = ((maxCaracteresConductor * 10) + 10).dp.coerceAtLeast(80.dp)
+    val anchoConductor = ((maxCaracteresConductor * 10) + 10).dp.coerceAtLeast(120.dp)
 
     val maxCaracteresCarga = remember(registros) {
         val maxEnLista = registros.maxOfOrNull { it.carga.length } ?: 0
@@ -324,15 +324,15 @@ private fun FilaEncabezadoTrailer(
     anchoCarga: Dp
 ) {
     Row(modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)) {
-        Text("ID", modifier = Modifier.width(50.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold)
-        Text("Placas", modifier = Modifier.width(anchoPlacas).padding(end = 5.dp), fontWeight = FontWeight.Bold)
-        Text("Conductor", modifier = Modifier.width(anchoConductor).padding(end = 5.dp), fontWeight = FontWeight.Bold)
-        Text("Carga", modifier = Modifier.width(anchoCarga).padding(end = 5.dp), fontWeight = FontWeight.Bold)
-        Text("F. Entrada", modifier = Modifier.width(190.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold)
-        Text("P. Entrada", modifier = Modifier.width(120.dp).padding(end = 25.dp), fontWeight = FontWeight.Bold)
-        Text("F. Salida", modifier = Modifier.width(190.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold)
-        Text("P. Salida", modifier = Modifier.width(120.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold)
-        Text("Estado", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold)
+        Text("ID", modifier = Modifier.width(50.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text("Placas", modifier = Modifier.width(anchoPlacas).padding(end = 5.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text("Conductor", modifier = Modifier.width(anchoConductor).padding(end = 5.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text("Carga", modifier = Modifier.width(anchoCarga).padding(end = 5.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text("F. Entrada", modifier = Modifier.width(190.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text("P. Entrada", modifier = Modifier.width(120.dp).padding(end = 25.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text("F. Salida", modifier = Modifier.width(190.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text("P. Salida", modifier = Modifier.width(120.dp).padding(end = 16.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+        Text("Estado", modifier = Modifier.width(80.dp), fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
     }
 }
 

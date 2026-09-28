@@ -329,26 +329,12 @@ fun SalidaScreen(
         }
 
         // ============ SECCIÓN 7: Acciones (Registrar e Imprimir) ============
+        // ============ SECCIÓN 7: Acciones ============
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(
-                onClick = {
-                    viewModel.registrarSalida(imprimirDespues = false)
-                    placaElegida = ""
-                },
-                enabled = vehiculoSeleccionado != null && currentWeight != null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Registrar sin Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            }
-
+            // 1. Registrar e Imprimir (ARRIBA)
             Button(
                 onClick = {
                     viewModel.registrarSalida(imprimirDespues = true, printerName = "Printer001")
@@ -367,6 +353,21 @@ fun SalidaScreen(
                 Icon(Icons.Default.Print, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Registrar e Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
+
+            // 2. Reimprimir último ticket (ABAJO)
+            OutlinedButton(
+                onClick = {
+                    viewModel.reimprimirUltimoTicketSalida(printerName = "Printer001")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Print, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Reimprimir último ticket", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

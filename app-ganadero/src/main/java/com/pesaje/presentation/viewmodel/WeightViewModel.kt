@@ -71,10 +71,9 @@ class WeightViewModel(
         viewModelScope.launch { repository.setZero() }
     }
 
-    fun guardarRegistro(
+    fun guardarEImprimir(
         areteId: String,
         sexo: String,
-        imprimirDespues: Boolean,
         printerName: String = "Printer001"
     ) {
         val pesoAGuardar = currentWeight.value?.kilograms
@@ -93,22 +92,43 @@ class WeightViewModel(
             )
             registroDao.insertar(registro)
             Log.d(TAG, "✅ Registro guardado: $registro")
+            limpiarPeso()
 
-            if (imprimirDespues) {
-                _printStatus.value = "Imprimiendo ticket..."
-                val exito = printCattleTicketUseCase(
-                    printerName = printerName,
-                    areteId = areteId,
-                    sexo = sexo,
-                    pesoKg = pesoAGuardar
-                )
-                _printStatus.value = if (exito) {
-                    "¡Ticket impreso con éxito!"
-                } else {
-                    "Error: No se pudo conectar a '$printerName' o falló la impresión."
-                }
+            _printStatus.value = "Imprimiendo ticket..."
+            val exito = printCattleTicketUseCase(
+                printerName = printerName,
+                areteId = areteId,
+                sexo = sexo,
+                pesoKg = pesoAGuardar
+            )
+            _printStatus.value = if (exito) {
+                "¡Ticket impreso y guardado con éxito!"
             } else {
-                _printStatus.value = "Registro guardado correctamente"
+                "Guardado. Error al conectar a '$printerName'."
+            }
+        }
+    }
+
+    fun reimprimirUltimoTicket(printerName: String = "Printer001") {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ultimoRegistro = registroDao.obtenerUltimo()
+
+            if (ultimoRegistro == null) {
+                _printStatus.value = "No hay tickets previos para reimprimir."
+                return@launch
+            }
+
+            _printStatus.value = "Reimprimiendo último ticket..."
+            val exito = printCattleTicketUseCase(
+                printerName = printerName,
+                areteId = ultimoRegistro.arete,
+                sexo = ultimoRegistro.sexo,
+                pesoKg = ultimoRegistro.peso
+            )
+            _printStatus.value = if (exito) {
+                "¡Reimpresión exitosa!"
+            } else {
+                "Error al reimprimir en '$printerName'."
             }
         }
     }
@@ -127,5 +147,9 @@ class WeightViewModel(
         observeJob?.cancel()
         repository.disconnect()
         super.onCleared()
+    }
+
+    fun limpiarPeso() {
+        _currentWeight.value = null
     }
 }

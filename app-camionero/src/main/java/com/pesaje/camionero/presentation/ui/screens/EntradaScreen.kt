@@ -311,29 +311,7 @@ fun EntradaScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(
-                onClick = {
-                    viewModel.registrarEntrada(
-                        placas = placas,
-                        conductor = conductor,
-                        carga = carga,
-                        imprimirDespues = false
-                    )
-                    placas = ""
-                    conductor = ""
-                    carga = ""
-                },
-                enabled = placas.trim().isNotEmpty() && conductor.trim().isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Registrar sin Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            }
-
+            // 1. Registrar e Imprimir (ARRIBA)
             Button(
                 onClick = {
                     viewModel.registrarEntrada(
@@ -360,6 +338,21 @@ fun EntradaScreen(
                 Icon(Icons.Default.Print, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Registrar e Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
+
+            // 2. Reimprimir último ticket (ABAJO)
+            OutlinedButton(
+                onClick = {
+                    viewModel.reimprimirUltimoTicketEntrada(printerName = "Printer001")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Print, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Reimprimir último ticket", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

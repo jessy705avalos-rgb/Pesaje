@@ -33,6 +33,11 @@ class TrailerRepositoryImpl(
         return dao.borrarTodos()
     }
 
+    override suspend fun obtenerUltimoEntrada(): RegistroPesajeTrailer? {
+        return dao.obtenerUltimoEntrada()
+    }
 
-
+    override suspend fun obtenerUltimoSalida(): RegistroPesajeTrailer? {
+        return dao.obtenerUltimoSalida()
+    }
 }

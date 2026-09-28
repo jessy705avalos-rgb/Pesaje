@@ -14,6 +14,8 @@ interface RegistroPesajeGanadoDao {
     @Query("SELECT * FROM registros_pesaje_ganado ORDER BY id DESC")
     fun obtenerTodos(): Flow<List<RegistroPesajeGanado>>
 
+    @Query("SELECT * FROM registros_pesaje_ganado ORDER BY id DESC LIMIT 1")
+    suspend fun obtenerUltimo(): RegistroPesajeGanado?
     @Query("DELETE FROM registros_pesaje_ganado")
     suspend fun borrarTodos()
 }

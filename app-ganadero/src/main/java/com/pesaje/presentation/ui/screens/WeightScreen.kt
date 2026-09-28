@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Balance
@@ -312,38 +313,17 @@ fun WeightScreen(
             }
         }
 
-        // ============ SECCIÓN 6: Acciones (Guardar e Imprimir) ============
+        // ============ SECCIÓN 6: Acciones de Guardar e Imprimir ============
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(
-                onClick = {
-                    viewModel.guardarRegistro(
-                        areteId = areteId,
-                        sexo = sexoSeleccionado,
-                        imprimirDespues = false
-                    )
-                    areteId = ""
-                    sexoSeleccionado = "Macho"
-                },
-                enabled = areteId.trim().isNotEmpty() && currentWeight?.kilograms != null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Guardar sin Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            }
-
+            // 1. Registrar e Imprimir (ARRIBA)
             Button(
                 onClick = {
-                    viewModel.guardarRegistro(
+                    viewModel.guardarEImprimir(
                         areteId = areteId,
                         sexo = sexoSeleccionado,
-                        imprimirDespues = true,
                         printerName = "Printer001"
                     )
                     areteId = ""
@@ -359,7 +339,22 @@ fun WeightScreen(
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text("Guardar e Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("Registrar e Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
+
+            // 2. Reimprimir último ticket (ABAJO)
+            OutlinedButton(
+                onClick = {
+                    viewModel.reimprimirUltimoTicket(printerName = "Printer001")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Print, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Reimprimir último ticket", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

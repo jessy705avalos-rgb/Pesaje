@@ -176,4 +176,54 @@ class TrailerViewModel(
         connectionJob?.cancel(); observeJob?.cancel(); repository.disconnect()
         super.onCleared()
     }
+
+    fun reimprimirUltimoTicketEntrada(printerName: String = "Printer001") {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ultimo = trailerRepository.obtenerUltimoEntrada()
+            if (ultimo != null) {
+                val exito = printTrailerEntradaUseCase(
+                    printerName = printerName,
+                    placas = ultimo.placas,
+                    conductor = ultimo.conductor,
+                    carga = ultimo.carga,
+                    pesoEntrada = ultimo.pesoEntrada,
+                    fechaEntrada = ultimo.fechaEntrada
+                )
+                _mensaje.value = if (exito) "Reimprimiendo último ticket de entrada..." else "Error al imprimir el ticket."
+            } else {
+                _mensaje.value = "No hay registros de entrada para reimprimir."
+            }
+        }
+    }
+
+    fun reimprimirUltimoTicketSalida(printerName: String = "Printer001") {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ultimo = trailerRepository.obtenerUltimoSalida()
+            if (ultimo != null) {
+                val pesoSalidaLocal = ultimo.pesoSalida
+                val fechaSalidaLocal = ultimo.fechaSalida
+
+                if (pesoSalidaLocal != null && fechaSalidaLocal != null) {
+                    val pesoNeto = kotlin.math.abs(ultimo.pesoEntrada - pesoSalidaLocal)
+                    val exito = printTrailerSalidaUseCase(
+                        printerName = printerName,
+                        placas = ultimo.placas,
+                        conductor = ultimo.conductor,
+                        carga = ultimo.carga,
+                        pesoEntrada = ultimo.pesoEntrada,
+                        fechaEntrada = ultimo.fechaEntrada,
+                        pesoSalida = pesoSalidaLocal,
+                        fechaSalida = fechaSalidaLocal,
+                        pesoNeto = pesoNeto
+                    )
+                    _mensaje.value = if (exito) "Reimprimiendo último ticket de salida..." else "Error al imprimir el ticket."
+                } else {
+                    _mensaje.value = "El último registro de salida está incompleto."
+                }
+            } else {
+                _mensaje.value = "No hay registros de salida para reimprimir."
+            }
+        }
+    }
+
 }

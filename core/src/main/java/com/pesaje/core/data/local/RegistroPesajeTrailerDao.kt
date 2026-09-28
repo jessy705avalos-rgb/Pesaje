@@ -26,4 +26,12 @@ interface RegistroPesajeTrailerDao {   //Room, esta interfaz contiene las operac
 
     @Query("DELETE FROM registros_pesaje_trailer") //Borra todos los registros de esta tabla
     suspend fun borrarTodos()
+
+    // Obtener el último registrado en Entrada (Estado ABIERTO)
+    @Query("SELECT * FROM registros_pesaje_trailer WHERE estaAbierto = 1 ORDER BY id DESC LIMIT 1")
+    suspend fun obtenerUltimoEntrada(): RegistroPesajeTrailer?
+
+    // Obtener el último registrado en Salida (Estado CERRADO)
+    @Query("SELECT * FROM registros_pesaje_trailer WHERE estaAbierto = 0 ORDER BY id DESC LIMIT 1")
+    suspend fun obtenerUltimoSalida(): RegistroPesajeTrailer?
 }
