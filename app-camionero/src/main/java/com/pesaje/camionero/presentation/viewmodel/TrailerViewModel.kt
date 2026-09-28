@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pesaje.camionero.domain.repository.TrailerRepository
 import com.pesaje.core.data.local.RegistroPesajeTrailer
+import com.pesaje.core.data.local.SettingsDataStore
 import com.pesaje.core.domain.model.WeightReading
 import com.pesaje.core.domain.repository.WeightRepository
 import com.pesaje.core.domain.usecase.PrintTrailerEntradaUseCase
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -25,7 +27,8 @@ class TrailerViewModel(
     private val repository: WeightRepository,
     private val trailerRepository: TrailerRepository,
     private val printTrailerEntradaUseCase: PrintTrailerEntradaUseCase,
-    private val printTrailerSalidaUseCase: PrintTrailerSalidaUseCase
+    private val printTrailerSalidaUseCase: PrintTrailerSalidaUseCase,
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
     private val _isConnected = MutableStateFlow(false)
@@ -40,6 +43,18 @@ class TrailerViewModel(
     private val _mensaje = MutableStateFlow<String?>(null)
     val mensaje: StateFlow<String?> = _mensaje.asStateFlow()
 
+    // --- Configuración de Tickets desde DataStore ---
+    val entradaHeader: StateFlow<String> = settingsDataStore.trailerEntradaHeaderFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "ENTRADA TRAILER")
+
+    val entradaFooter: StateFlow<String> = settingsDataStore.trailerEntradaFooterFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Conserve su ticket")
+
+    val salidaHeader: StateFlow<String> = settingsDataStore.trailerSalidaHeaderFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SALIDA TRAILER")
+
+    val salidaFooter: StateFlow<String> = settingsDataStore.trailerSalidaFooterFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Regrese pronto")
 
     val vehiculosAbiertos: StateFlow<List<RegistroPesajeTrailer>> =
         trailerRepository.obtenerAbiertos()
@@ -76,6 +91,17 @@ class TrailerViewModel(
         viewModelScope.launch { repository.setTare() }
     }
 
+    fun guardarConfiguracionTickets(
+        eHeader: String,
+        eFooter: String,
+        sHeader: String,
+        sFooter: String
+    ) {
+        viewModelScope.launch {
+            settingsDataStore.saveTrailerTicketSettings(eHeader, eFooter, sHeader, sFooter)
+        }
+    }
+
     fun registrarEntrada(
         placas: String, conductor: String, carga: String,
         imprimirDespues: Boolean = false, printerName: String = "Printer001"
@@ -98,17 +124,22 @@ class TrailerViewModel(
             )
             trailerRepository.registrarEntrada(registro)
             Log.d(TAG, "✅ Entrada registrada: $registro")
-            _currentWeight.value= null                              //limpiamos el peso
+            _currentWeight.value = null // limpiamos el peso
 
             if (imprimirDespues) {
                 _mensaje.value = "Imprimiendo ticket..."
+                val titulo = settingsDataStore.trailerEntradaHeaderFlow.first()
+                val piePagina = settingsDataStore.trailerEntradaFooterFlow.first()
+
                 val exito = printTrailerEntradaUseCase(
-                    printerName,
-                    placas.trim(),
-                    conductor.trim(),
-                    carga.trim(),
-                    pesoActual,
-                    fechaActual
+                    printerName = printerName,
+                    placas = placas.trim(),
+                    conductor = conductor.trim(),
+                    carga = carga.trim(),
+                    pesoEntrada = pesoActual,
+                    fechaEntrada = fechaActual,
+                    titulo = titulo,
+                    piePagina = piePagina
                 )
                 _mensaje.value =
                     if (exito) "¡Ticket entrada impreso con éxito!" else "Entrada registrada, pero falló la impresión"
@@ -142,16 +173,21 @@ class TrailerViewModel(
             _currentWeight.value = null
 
             if (imprimirDespues) {
+                val titulo = settingsDataStore.trailerSalidaHeaderFlow.first()
+                val piePagina = settingsDataStore.trailerSalidaFooterFlow.first()
+
                 val exito = printTrailerSalidaUseCase(
-                    printerName,
-                    vehiculo.placas,
-                    vehiculo.conductor,
-                    vehiculo.carga,
-                    vehiculo.pesoEntrada,
-                    vehiculo.fechaEntrada,
-                    pesoSalidaActual,
-                    fechaSalidaActual,
-                    pesoNeto
+                    printerName = printerName,
+                    placas = vehiculo.placas,
+                    conductor = vehiculo.conductor,
+                    carga = vehiculo.carga,
+                    pesoEntrada = vehiculo.pesoEntrada,
+                    fechaEntrada = vehiculo.fechaEntrada,
+                    pesoSalida = pesoSalidaActual,
+                    fechaSalida = fechaSalidaActual,
+                    pesoNeto = pesoNeto,
+                    titulo = titulo,
+                    piePagina = piePagina
                 )
                 _mensaje.value =
                     if (exito) "Salida registrada e impresa. Neto: ${pesoNeto.toInt()} kg" else "Salida registrada, pero falló la impresión"
@@ -173,7 +209,9 @@ class TrailerViewModel(
     }
 
     override fun onCleared() {
-        connectionJob?.cancel(); observeJob?.cancel(); repository.disconnect()
+        connectionJob?.cancel()
+        observeJob?.cancel()
+        repository.disconnect()
         super.onCleared()
     }
 
@@ -181,13 +219,18 @@ class TrailerViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             val ultimo = trailerRepository.obtenerUltimoEntrada()
             if (ultimo != null) {
+                val titulo = settingsDataStore.trailerEntradaHeaderFlow.first()
+                val piePagina = settingsDataStore.trailerEntradaFooterFlow.first()
+
                 val exito = printTrailerEntradaUseCase(
                     printerName = printerName,
                     placas = ultimo.placas,
                     conductor = ultimo.conductor,
                     carga = ultimo.carga,
                     pesoEntrada = ultimo.pesoEntrada,
-                    fechaEntrada = ultimo.fechaEntrada
+                    fechaEntrada = ultimo.fechaEntrada,
+                    titulo = titulo,
+                    piePagina = piePagina
                 )
                 _mensaje.value = if (exito) "Reimprimiendo último ticket de entrada..." else "Error al imprimir el ticket."
             } else {
@@ -205,6 +248,9 @@ class TrailerViewModel(
 
                 if (pesoSalidaLocal != null && fechaSalidaLocal != null) {
                     val pesoNeto = kotlin.math.abs(ultimo.pesoEntrada - pesoSalidaLocal)
+                    val titulo = settingsDataStore.trailerSalidaHeaderFlow.first()
+                    val piePagina = settingsDataStore.trailerSalidaFooterFlow.first()
+
                     val exito = printTrailerSalidaUseCase(
                         printerName = printerName,
                         placas = ultimo.placas,
@@ -214,7 +260,9 @@ class TrailerViewModel(
                         fechaEntrada = ultimo.fechaEntrada,
                         pesoSalida = pesoSalidaLocal,
                         fechaSalida = fechaSalidaLocal,
-                        pesoNeto = pesoNeto
+                        pesoNeto = pesoNeto,
+                        titulo = titulo,
+                        piePagina = piePagina
                     )
                     _mensaje.value = if (exito) "Reimprimiendo último ticket de salida..." else "Error al imprimir el ticket."
                 } else {
@@ -225,5 +273,4 @@ class TrailerViewModel(
             }
         }
     }
-
 }

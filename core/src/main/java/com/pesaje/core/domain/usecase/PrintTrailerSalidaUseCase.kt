@@ -14,11 +14,13 @@ class PrintTrailerSalidaUseCase(
         fechaEntrada: String,
         pesoSalida: Double,
         fechaSalida: String,
-        pesoNeto: Double
+        pesoNeto: Double,
+        titulo: String = "SALIDA TRAILER",
+        piePagina: String = "Regrese pronto"
     ): Boolean {
         return printerRepository.printTrailerSalida(
             printerName, placas, conductor, carga,
-            pesoEntrada, fechaEntrada, pesoSalida, fechaSalida, pesoNeto
+            pesoEntrada, fechaEntrada, pesoSalida, fechaSalida, pesoNeto, titulo, piePagina
         )
     }
 }

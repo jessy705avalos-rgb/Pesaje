@@ -13,10 +13,12 @@ class PrinterRepositoryImpl(
         printerName: String,
         areteId: String,
         sexo: String,
-        pesoKg: Double?
+        pesoKg: Double?,
+        titulo: String,
+        piePagina: String
     ): Boolean {
         val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
-        val success = printerHelper.printCattleTicket(socket, areteId, sexo, pesoKg)
+        val success = printerHelper.printCattleTicket(socket, areteId, sexo, pesoKg, titulo, piePagina)
         try { socket.close() } catch (_: Exception) {}
         return success
     }
@@ -26,11 +28,13 @@ class PrinterRepositoryImpl(
         conductor: String,
         carga: String,
         pesoEntrada: Double,
-        fechaEntrada: String
+        fechaEntrada: String,
+        titulo: String,
+        piePagina: String
     ): Boolean {
         val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
         val success = printerHelper.printTrailerEntradaTicket(
-            socket, placas, conductor, carga, pesoEntrada, fechaEntrada
+            socket, placas, conductor, carga, pesoEntrada, fechaEntrada, titulo, piePagina
         )
         try { socket.close() } catch (_: Exception) {}
         return success
@@ -45,11 +49,13 @@ class PrinterRepositoryImpl(
         fechaEntrada: String,
         pesoSalida: Double,
         fechaSalida: String,
-        pesoNeto: Double
+        pesoNeto: Double,
+        titulo: String,
+        piePagina: String
     ): Boolean {
         val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
         val success = printerHelper.printTrailerSalidaTicket(
-            socket, placas, conductor, carga, pesoEntrada, fechaEntrada, pesoSalida, fechaSalida, pesoNeto
+            socket, placas, conductor, carga, pesoEntrada, fechaEntrada, pesoSalida, fechaSalida, pesoNeto, titulo, piePagina
         )
         try { socket.close() } catch (_: Exception) {}
         return success

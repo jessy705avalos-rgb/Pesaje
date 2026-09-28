@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Balance
 import androidx.compose.material3.*
@@ -38,10 +37,14 @@ import com.pesaje.presentation.viewmodel.WeightViewModel
 @Composable
 fun WeightScreen(
     viewModel: WeightViewModel,
-    modifier: Modifier = Modifier,
+    onNavigateToSettings: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val isConnected by viewModel.isConnected.collectAsState()
     val currentWeight by viewModel.currentWeight.collectAsState()
+
+    val headerState by viewModel.ticketHeader.collectAsState(initial = "PESAJE DE GANADO")
+    val footerState by viewModel.ticketFooter.collectAsState(initial = "Gracias por su visita")
 
     var areteId by remember { mutableStateOf("") }
     var sexoSeleccionado by remember { mutableStateOf("Macho") }
@@ -94,7 +97,7 @@ fun WeightScreen(
                 }
             }
             IconButton(
-                onClick = { },
+                onClick = onNavigateToSettings,
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(Color.White)
@@ -176,6 +179,7 @@ fun WeightScreen(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = currentWeight?.kilograms?.let { "%.1f".format(it) } ?: "--.-",
@@ -257,7 +261,7 @@ fun WeightScreen(
             }
         }
 
-        // ============ SECCIÓN 5: FORMULARIO GANADO (Arete y Sexo) ============
+        // ============ SECCIÓN 5: FORMULARIO GANADO ============
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -313,18 +317,19 @@ fun WeightScreen(
             }
         }
 
-        // ============ SECCIÓN 6: Acciones de Guardar e Imprimir ============
+        // ============ SECCIÓN 6: Acciones ============
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 1. Registrar e Imprimir (ARRIBA)
             Button(
                 onClick = {
                     viewModel.guardarEImprimir(
                         areteId = areteId,
                         sexo = sexoSeleccionado,
-                        printerName = "Printer001"
+                        printerName = "Printer001",
+                        header = headerState,
+                        footer = footerState
                     )
                     areteId = ""
                     sexoSeleccionado = "Macho"
@@ -342,10 +347,13 @@ fun WeightScreen(
                 Text("Registrar e Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
 
-            // 2. Reimprimir último ticket (ABAJO)
             OutlinedButton(
                 onClick = {
-                    viewModel.reimprimirUltimoTicket(printerName = "Printer001")
+                    viewModel.reimprimirUltimoTicket(
+                        printerName = "Printer001",
+                        header = headerState,
+                        footer = footerState
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()

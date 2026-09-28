@@ -84,7 +84,9 @@ class TicketPrinterHelper {
         conductor: String,
         carga: String,
         pesoEntrada: Double,
-        fechaEntrada: String
+        fechaEntrada: String,
+        titulo: String = "ENTRADA TRAILER",
+        piePagina: String = "Conserve su ticket"
     ): Boolean {
         if (socket == null || !socket.isConnected) return false
         return try {
@@ -96,7 +98,7 @@ class TicketPrinterHelper {
 
             commands.addAll(byteArrayOf(0x1B, 0x45, 0x01).toTypedArray())
             commands.addAll(byteArrayOf(0x1D, 0x21, 0x11).toTypedArray())
-            commands.addAll("ENTRADA TRAILER\n\n".toByteArray(Charsets.ISO_8859_1).toTypedArray())
+            commands.addAll("$titulo\n\n".toByteArray(Charsets.ISO_8859_1).toTypedArray())
 
             commands.addAll(byteArrayOf(0x1B, 0x45, 0x00).toTypedArray())
             commands.addAll(byteArrayOf(0x1D, 0x21, 0x00).toTypedArray())
@@ -111,7 +113,7 @@ class TicketPrinterHelper {
                 append("Peso: $pesoStr kg\n")
                 append("Fecha de entrada: $fechaEntrada\n\n")
                 append("--------------------------------\n\n")
-                append("Conserve su ticket\n\n\n\n")
+                append("$piePagina\n\n\n\n")
             }.toString()
 
             commands.addAll(ticketContent.toByteArray(Charsets.ISO_8859_1).toTypedArray())
@@ -136,7 +138,9 @@ class TicketPrinterHelper {
         fechaEntrada: String,
         pesoSalida: Double,
         fechaSalida: String,
-        pesoNeto: Double
+        pesoNeto: Double,
+        titulo: String = "SALIDA TRAILER",
+        piePagina: String = "Regrese pronto"
     ): Boolean {
         if (socket == null || !socket.isConnected) return false
         return try {
@@ -148,7 +152,7 @@ class TicketPrinterHelper {
 
             commands.addAll(byteArrayOf(0x1B, 0x45, 0x01).toTypedArray())
             commands.addAll(byteArrayOf(0x1D, 0x21, 0x11).toTypedArray())
-            commands.addAll("SALIDA TRAILER\n\n".toByteArray(Charsets.ISO_8859_1).toTypedArray())
+            commands.addAll("$titulo\n\n".toByteArray(Charsets.ISO_8859_1).toTypedArray())
 
             commands.addAll(byteArrayOf(0x1B, 0x45, 0x00).toTypedArray())
             commands.addAll(byteArrayOf(0x1D, 0x21, 0x00).toTypedArray())
@@ -168,7 +172,7 @@ class TicketPrinterHelper {
                 append("Peso de salida: $salidaStr kg\n")
                 append("Peso Neto: $netoStr kg\n\n")
                 append("--------------------------------\n\n")
-                append("Regrese pronto\n\n\n\n")
+                append("$piePagina\n\n\n\n")
             }.toString()
 
             commands.addAll(ticketContent.toByteArray(Charsets.ISO_8859_1).toTypedArray())

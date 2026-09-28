@@ -10,8 +10,10 @@ class PrintCattleTicketUseCase(
         printerName: String,
         areteId: String,
         sexo: String,
-        pesoKg: Double?
+        pesoKg: Double?,
+        titulo: String = "PESAJE DE GANADO",
+        piePagina: String = "Gracias por su visita"
     ): Boolean {
-        return printerRepository.printCattleTicket(printerName, areteId, sexo, pesoKg)
+        return printerRepository.printCattleTicket(printerName, areteId, sexo, pesoKg, titulo, piePagina)
     }
 }

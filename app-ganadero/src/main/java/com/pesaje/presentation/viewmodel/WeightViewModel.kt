@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pesaje.core.data.local.RegistroPesajeGanado
 import com.pesaje.core.data.local.RegistroPesajeGanadoDao
+import com.pesaje.core.data.local.SettingsDataStore
 import com.pesaje.core.domain.model.WeightReading
 import com.pesaje.core.domain.repository.WeightRepository
 import com.pesaje.core.domain.usecase.PrintCattleTicketUseCase
@@ -21,6 +22,7 @@ class WeightViewModel(
     private val repository: WeightRepository,
     private val printCattleTicketUseCase: PrintCattleTicketUseCase,
     private val registroDao: RegistroPesajeGanadoDao,
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
     private val _isConnected = MutableStateFlow(false)
@@ -35,21 +37,20 @@ class WeightViewModel(
     private val _printStatus = MutableStateFlow<String?>(null)
     val printStatus: StateFlow<String?> = _printStatus.asStateFlow()
 
-    fun connect() {
-        Log.d(TAG, "ViewModel.connect() llamado")
+    val ticketHeader = settingsDataStore.headerFlow
+    val ticketFooter = settingsDataStore.footerFlow
 
+    fun connect() {
         connectionJob?.cancel()
         observeJob?.cancel()
 
         connectionJob = viewModelScope.launch {
             repository.connect().collect { connected ->
-                Log.d(TAG, "Estado de conexión actualizado: $connected")
                 _isConnected.value = connected
             }
         }
 
         observeJob = viewModelScope.launch {
-            Log.d(TAG, "Empezando a escuchar observeWeight()...")
             repository.observeWeight().collect { reading ->
                 _currentWeight.value = reading
             }
@@ -57,10 +58,7 @@ class WeightViewModel(
     }
 
     fun readWeight() {
-        Log.d(TAG, "ViewModel.readWeight() llamado - Solicitando trama al indicador")
-        viewModelScope.launch {
-            repository.requestWeight()
-        }
+        viewModelScope.launch { repository.requestWeight() }
     }
 
     fun setTare() {
@@ -71,10 +69,16 @@ class WeightViewModel(
         viewModelScope.launch { repository.setZero() }
     }
 
+    fun limpiarPeso() {
+        _currentWeight.value = null
+    }
+
     fun guardarEImprimir(
         areteId: String,
         sexo: String,
-        printerName: String = "Printer001"
+        printerName: String = "Printer001",
+        header: String,
+        footer: String
     ) {
         val pesoAGuardar = currentWeight.value?.kilograms
 
@@ -91,7 +95,7 @@ class WeightViewModel(
                 fecha = obtenerFechaActual()
             )
             registroDao.insertar(registro)
-            Log.d(TAG, "✅ Registro guardado: $registro")
+
             limpiarPeso()
 
             _printStatus.value = "Imprimiendo ticket..."
@@ -99,7 +103,9 @@ class WeightViewModel(
                 printerName = printerName,
                 areteId = areteId,
                 sexo = sexo,
-                pesoKg = pesoAGuardar
+                pesoKg = pesoAGuardar,
+                titulo = header,
+                piePagina = footer
             )
             _printStatus.value = if (exito) {
                 "¡Ticket impreso y guardado con éxito!"
@@ -109,7 +115,11 @@ class WeightViewModel(
         }
     }
 
-    fun reimprimirUltimoTicket(printerName: String = "Printer001") {
+    fun reimprimirUltimoTicket(
+        printerName: String = "Printer001",
+        header: String,
+        footer: String
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             val ultimoRegistro = registroDao.obtenerUltimo()
 
@@ -123,13 +133,22 @@ class WeightViewModel(
                 printerName = printerName,
                 areteId = ultimoRegistro.arete,
                 sexo = ultimoRegistro.sexo,
-                pesoKg = ultimoRegistro.peso
+                pesoKg = ultimoRegistro.peso,
+                titulo = header,
+                piePagina = footer
             )
             _printStatus.value = if (exito) {
                 "¡Reimpresión exitosa!"
             } else {
                 "Error al reimprimir en '$printerName'."
             }
+        }
+    }
+
+    fun guardarConfiguracionTicket(header: String, footer: String) {
+        viewModelScope.launch {
+            settingsDataStore.saveTicketSettings(header, footer)
+            _printStatus.value = "Configuración del ticket guardada"
         }
     }
 
@@ -147,9 +166,5 @@ class WeightViewModel(
         observeJob?.cancel()
         repository.disconnect()
         super.onCleared()
-    }
-
-    fun limpiarPeso() {
-        _currentWeight.value = null
     }
 }

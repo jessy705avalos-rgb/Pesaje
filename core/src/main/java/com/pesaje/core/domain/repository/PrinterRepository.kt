@@ -5,7 +5,9 @@ interface PrinterRepository {
         printerName: String,
         areteId: String,
         sexo: String,
-        pesoKg: Double?
+        pesoKg: Double?,
+        titulo: String,
+        piePagina: String
     ): Boolean
 
     suspend fun printTrailerEntrada(
@@ -14,7 +16,9 @@ interface PrinterRepository {
         conductor: String,
         carga: String,
         pesoEntrada: Double,
-        fechaEntrada: String
+        fechaEntrada: String,
+        titulo: String= "ENTRADA TRAILER",
+        piePagina: String = "Conserve su ticket"
     ): Boolean
 
     suspend fun printTrailerSalida(
@@ -26,6 +30,8 @@ interface PrinterRepository {
         fechaEntrada: String,
         pesoSalida: Double,
         fechaSalida: String,
-        pesoNeto: Double
+        pesoNeto: Double,
+        titulo: String = "SALIDA TRAILER",
+        piePagina: String = "Regrese pronto"
     ): Boolean
 }

@@ -8,31 +8,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.room.Room
 import com.pesaje.camionero.data.repositoryImpl.CsvExportTrailerRepositoryImpl
 import com.pesaje.camionero.data.repositoryImpl.TrailerRepositoryImpl
-import com.pesaje.camionero.presentation.ui.screens.EntradaScreen
 import com.pesaje.camionero.presentation.ui.screens.MainScreen
-import com.pesaje.camionero.presentation.ui.screens.SalidaScreen
 import com.pesaje.camionero.presentation.ui.theme.PesajeTheme
 import com.pesaje.camionero.presentation.viewmodel.HistorialTrailerViewModel
 import com.pesaje.camionero.presentation.viewmodel.TrailerViewModel
 import com.pesaje.core.data.local.AppDatabase
+import com.pesaje.core.data.local.SettingsDataStore
 import com.pesaje.core.data.remote.PrinterBluetoothManager
 import com.pesaje.core.data.remote.TicketPrinterHelper
 import com.pesaje.core.data.repositoryImpl.BleWeightRepository
@@ -59,6 +43,9 @@ class MainActivity : ComponentActivity() {
 
     // ---------- Báscula ----------
     private val weightRepository by lazy { BleWeightRepository(applicationContext) }
+
+    // ---------- DataStore ----------
+    private val settingsDataStore by lazy { SettingsDataStore(applicationContext) }
 
     // ---------- Impresora ----------
     private val printerBluetoothManager by lazy { PrinterBluetoothManager(applicationContext) }
@@ -95,10 +82,10 @@ class MainActivity : ComponentActivity() {
             repository = weightRepository,
             trailerRepository = trailerRepository,
             printTrailerEntradaUseCase = printTrailerEntradaUseCase,
-            printTrailerSalidaUseCase = printTrailerSalidaUseCase
+            printTrailerSalidaUseCase = printTrailerSalidaUseCase,
+            settingsDataStore = settingsDataStore
         )
     }
-
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->

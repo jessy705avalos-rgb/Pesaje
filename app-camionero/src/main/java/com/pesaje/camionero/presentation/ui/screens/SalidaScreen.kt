@@ -68,38 +68,29 @@ fun SalidaScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // ============ SECCIÓN 1: Encabezado ============
 // ============ SECCIÓN 1: Encabezado ============
-        Row(
+        Box(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            contentAlignment = Alignment.Center
         ) {
-            // Esquina izquierda: Solo el texto LEBENPRO
+            // Esquina izquierda: Marca
             Text(
                 text = "LEBENPRO",
                 fontSize = 12.sp,
                 color = Color.Gray,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.CenterStart)
             )
 
-            // Centro: Título principal de la pantalla
+            // Centro exacto: Título de la pantalla
             Text(
                 text = "Registrar Salida",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
-
-            // Esquina derecha: Botón de Configuración
-            IconButton(
-                onClick = { /* pendiente */ },
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color.White)
-            ) {
-                Icon(Icons.Default.Settings, contentDescription = "Configuración")
-            }
         }
+
+//        Spacer(modifier = Modifier.width(10.dp))
 
         // ============ SECCIÓN 2: Barra de conexión ============
         Row(
