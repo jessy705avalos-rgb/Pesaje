@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Balance
 import androidx.compose.material3.*
@@ -45,6 +46,7 @@ fun WeightScreen(
 
     val headerState by viewModel.ticketHeader.collectAsState(initial = "PESAJE DE GANADO")
     val footerState by viewModel.ticketFooter.collectAsState(initial = "Gracias por su visita")
+    val indicatorName by viewModel.indicatorDevice.collectAsState(initial = "")
 
     var areteId by remember { mutableStateOf("") }
     var sexoSeleccionado by remember { mutableStateOf("Macho") }
@@ -139,7 +141,7 @@ fun WeightScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "BL243902",
+                        text = indicatorName.ifBlank { "Sin indicador" },
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -327,7 +329,6 @@ fun WeightScreen(
                     viewModel.guardarEImprimir(
                         areteId = areteId,
                         sexo = sexoSeleccionado,
-                        printerName = "Printer001",
                         header = headerState,
                         footer = footerState
                     )
@@ -344,13 +345,15 @@ fun WeightScreen(
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
+                Icon(Icons.Default.Save, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
                 Text("Registrar e Imprimir", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+
             }
 
             OutlinedButton(
                 onClick = {
                     viewModel.reimprimirUltimoTicket(
-                        printerName = "Printer001",
                         header = headerState,
                         footer = footerState
                     )

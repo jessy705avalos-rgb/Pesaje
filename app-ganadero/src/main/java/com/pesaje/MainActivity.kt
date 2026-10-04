@@ -10,7 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.room.Room
 import com.pesaje.core.data.local.AppDatabase
-import com.pesaje.core.data.local.SettingsDataStore // NUEVO: Importar SettingsDataStore
+import com.pesaje.core.data.local.SettingsDataStore
 import com.pesaje.core.data.remote.PrinterBluetoothManager
 import com.pesaje.core.data.remote.TicketPrinterHelper
 import com.pesaje.core.data.repositoryImpl.BleWeightRepository
@@ -39,8 +39,10 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+    private val settingsDataStore by lazy { SettingsDataStore(applicationContext) }
+
     // Inicializaciones perezosas de la capa Data y Domain
-    private val weightRepository by lazy { BleWeightRepository(applicationContext) }
+    private val weightRepository by lazy { BleWeightRepository(applicationContext, settingsDataStore) }
     private val printerBluetoothManager by lazy { PrinterBluetoothManager(applicationContext) }
     private val printerHelper by lazy { TicketPrinterHelper() }
     private val printerRepository by lazy {
@@ -64,14 +66,12 @@ class MainActivity : ComponentActivity() {
     private val registroDao by lazy { database.registroPesajeGanadoDao() }
     private val csvExportRepository by lazy { CsvExportRepositoryImpl() }
 
-    private val settingsDataStore by lazy { SettingsDataStore(applicationContext) } // NUEVO: Instancia del DataStore
-
     private val weightViewModel by lazy {
         WeightViewModel(
             repository = weightRepository,
             printCattleTicketUseCase = printCattleTicketUseCase,
             registroDao = registroDao,
-            settingsDataStore = settingsDataStore // NUEVO: Inyección del DataStore
+            settingsDataStore = settingsDataStore
         )
     }
 

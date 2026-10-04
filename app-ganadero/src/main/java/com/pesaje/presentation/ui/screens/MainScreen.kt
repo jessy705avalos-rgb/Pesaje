@@ -27,6 +27,11 @@ fun MainScreen(
     val headerState by weightViewModel.ticketHeader.collectAsState(initial = "PESAJE DE GANADO")
     val footerState by weightViewModel.ticketFooter.collectAsState(initial = "Gracias por su visita")
 
+    // Configuración de dispositivos
+    val indicatorDeviceState by weightViewModel.indicatorDevice.collectAsState(initial = "")
+    val indicatorFormatState by weightViewModel.indicatorFormat.collectAsState(initial = "")
+    val printerDeviceState by weightViewModel.printerDevice.collectAsState(initial = "")
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
@@ -66,9 +71,14 @@ fun MainScreen(
                 SettingsScreen(
                     initialHeader = headerState,
                     initialFooter = footerState,
+                    initialIndicatorFormat = indicatorFormatState,
+                    initialIndicatorDevice = indicatorDeviceState,
+                    initialPrinterDevice = printerDeviceState,
                     onBackClick = { pantallaActual = "principal" },
-                    onSave = { newHeader, newFooter ->
-                        weightViewModel.guardarConfiguracionTicket(newHeader, newFooter)
+                    onSave = { header, footer, indFormat, indDevice, prnDevice ->
+                        weightViewModel.guardarConfiguracion(
+                            header, footer, indFormat, indDevice, prnDevice
+                        )
                     },
                     modifier = Modifier.padding(innerPadding)
                 )

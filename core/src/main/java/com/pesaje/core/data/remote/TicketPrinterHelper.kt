@@ -1,6 +1,7 @@
 package com.pesaje.core.data.remote
 
 import android.bluetooth.BluetoothSocket
+import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -8,6 +9,33 @@ import java.util.Locale
 
 class TicketPrinterHelper {
 
+    // Caracteres máximos por línea en tamaño doble (papel 58 mm = 32 cols normales -> 16 dobles).
+    // Si usas papel de 80 mm cambia a 24.
+    private val maxCharsTituloGrande = 16
+    private val regexSegundos = Regex("""(\d{1,2}:\d{2}):\d{2}""")
+
+    private fun ByteArrayOutputStream.cmd(vararg bytes: Int) {
+        write(ByteArray(bytes.size) { bytes[it].toByte() })
+    }
+
+    private fun ByteArrayOutputStream.text(s: String) {
+        write(s.toByteArray(Charsets.ISO_8859_1))
+    }
+
+    // Etiqueta en NEGRITA, contenido SIN negrita
+    private fun ByteArrayOutputStream.campo(etiqueta: String, valor: String) {
+        cmd(0x1B, 0x45, 0x01)   // Negrita ON  -> etiqueta
+        text("$etiqueta ")
+        cmd(0x1B, 0x45, 0x00)   // Negrita OFF -> contenido
+        text("$valor\n")
+    }
+
+    private fun normalizarSaltos(s: String): String =
+        s.replace("\r\n", "\n").replace('\r', '\n').trim()
+
+    // "03/10/2026 15:12:45" -> "03/10/2026 15:12"
+    private fun sinSegundos(fecha: String): String =
+        regexSegundos.replace(fecha.trim(), "\$1")
     @Suppress("MissingPermission")
     fun printCattleTicket(
         socket: BluetoothSocket?,
@@ -15,60 +43,56 @@ class TicketPrinterHelper {
         sexo: String,
         pesoKg: Double?,
         titulo: String = "PESAJE DE GANADO",
-        piePagina: String = "Gracias por su visita"
+        piePagina: String = "Gracias por su visita",
+        fecha: String? = null
     ): Boolean {
         if (socket == null || !socket.isConnected) return false
 
         return try {
             val outputStream: OutputStream = socket.outputStream
-            val commands = ArrayList<Byte>()
+            val out = ByteArrayOutputStream()
 
-            // Reset impresora
-            commands.addAll(byteArrayOf(0x1B, 0x40).toTypedArray())
+            val tituloLimpio = normalizarSaltos(titulo)
+            val pieLimpio = normalizarSaltos(piePagina)
 
-            // Alineación al centro
-            commands.addAll(byteArrayOf(0x1B, 0x61, 0x01).toTypedArray())
+            // Doble alto/ancho solo si es UNA línea corta; si no, tamaño normal
+            val tituloGrande = !tituloLimpio.contains('\n') && tituloLimpio.length <= maxCharsTituloGrande
 
-            // --- TÍTULO (Grande y Negrita) ---
-            commands.addAll(byteArrayOf(0x1B, 0x45, 0x01).toTypedArray()) // Negrita ON
-            commands.addAll(byteArrayOf(0x1D, 0x21, 0x11).toTypedArray()) // Doble alto + ancho
-            commands.addAll("$titulo\n\n".toByteArray(Charsets.ISO_8859_1).toTypedArray())
+            out.cmd(0x1B, 0x40)          // Reset
+            out.cmd(0x1B, 0x61, 0x01)    // Centrado
 
-            // --- RESTAURAR TAMAÑO Y FORMATO NORMAL ---
-            commands.addAll(byteArrayOf(0x1B, 0x45, 0x00).toTypedArray()) // Negrita OFF
-            commands.addAll(byteArrayOf(0x1D, 0x21, 0x00).toTypedArray()) // Tamaño Normal
+            // --- TÍTULO (negrita; grande o normal según longitud/líneas) ---
+            out.cmd(0x1B, 0x45, 0x01)
+            out.cmd(0x1D, 0x21, if (tituloGrande) 0x11 else 0x00)
+            out.text("$tituloLimpio\n\n")
 
-            // --- CUERPO DEL TICKET ---
-            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-            val fechaActual = dateFormat.format(Date())
+            // --- RESTAURAR FORMATO NORMAL ---
+            out.cmd(0x1B, 0x45, 0x00)
+            out.cmd(0x1D, 0x21, 0x00)
+
+            // --- CUERPO ---
+            val fechaImpresion = sinSegundos(
+                fecha?.takeIf { it.isNotBlank() }
+                    ?: SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
+            )
             val pesoTexto = pesoKg?.let { String.format(Locale.US, "%.1f", it) } ?: "--.-"
-
             val areteLimpio = areteId.trim()
             val sexoLimpio = sexo.trim()
 
-            val ticketContent = StringBuilder().apply {
-                append("--------------------------------\n\n")
+            out.text("--------------------------------\n\n")
+            if (areteLimpio.isNotEmpty()) out.campo("Arete:", areteLimpio)
+            if (sexoLimpio.isNotEmpty()) out.campo("Sexo:", sexoLimpio)
+            out.campo("Peso:", "$pesoTexto kg")
+            out.campo("Fecha:", fechaImpresion)
+            out.text("\n--------------------------------\n\n")
 
-                if (areteLimpio.isNotEmpty()) {
-                    append("Arete: $areteLimpio\n")
-                }
+            // --- PIE (tamaño normal, respeta saltos de línea) ---
+            out.text("$pieLimpio\n\n\n\n")
 
-                if (sexoLimpio.isNotEmpty()) {
-                    append("Sexo: $sexoLimpio\n")
-                }
+            // Avance / corte
+            out.cmd(0x1D, 0x56, 0x41, 0x10)
 
-                append("Peso: $pesoTexto kg\n")
-                append("Fecha: $fechaActual\n\n")
-                append("--------------------------------\n\n")
-                append("$piePagina\n\n\n\n")
-            }.toString()
-
-            commands.addAll(ticketContent.toByteArray(Charsets.ISO_8859_1).toTypedArray())
-
-            // Avance de línea / corte
-            commands.addAll(byteArrayOf(0x1D, 0x56, 0x41, 0x10).toTypedArray())
-
-            outputStream.write(commands.toByteArray())
+            outputStream.write(out.toByteArray())
             outputStream.flush()
             true
         } catch (e: Exception) {

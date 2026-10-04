@@ -1,6 +1,5 @@
 package com.pesaje.core.domain.usecase
 
-import android.bluetooth.BluetoothSocket
 import com.pesaje.core.domain.repository.PrinterRepository
 
 class PrintCattleTicketUseCase(
@@ -12,8 +11,9 @@ class PrintCattleTicketUseCase(
         sexo: String,
         pesoKg: Double?,
         titulo: String = "PESAJE DE GANADO",
-        piePagina: String = "Gracias por su visita"
+        piePagina: String = "Gracias por su visita",
+        fecha: String? = null
     ): Boolean {
-        return printerRepository.printCattleTicket(printerName, areteId, sexo, pesoKg, titulo, piePagina)
+        return printerRepository.printCattleTicket(printerName, areteId, sexo, pesoKg, titulo, piePagina, fecha)
     }
 }

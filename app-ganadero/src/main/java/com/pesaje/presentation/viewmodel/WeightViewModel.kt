@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 private const val TAG = "PESAJE_VM"
@@ -39,6 +40,11 @@ class WeightViewModel(
 
     val ticketHeader = settingsDataStore.headerFlow
     val ticketFooter = settingsDataStore.footerFlow
+
+    // Configuración de dispositivos
+    val indicatorDevice = settingsDataStore.indicatorDeviceFlow
+    val printerDevice = settingsDataStore.printerDeviceFlow
+    val indicatorFormat = settingsDataStore.indicatorFormatFlow
 
     fun connect() {
         connectionJob?.cancel()
@@ -76,7 +82,6 @@ class WeightViewModel(
     fun guardarEImprimir(
         areteId: String,
         sexo: String,
-        printerName: String = "Printer001",
         header: String,
         footer: String
     ) {
@@ -88,15 +93,24 @@ class WeightViewModel(
         }
 
         viewModelScope.launch(Dispatchers.IO) {
+            // Misma fecha para guardar e imprimir
+            val fechaRegistro = obtenerFechaActual()
+
             val registro = RegistroPesajeGanado(
                 arete = areteId,
                 sexo = sexo,
                 peso = pesoAGuardar,
-                fecha = obtenerFechaActual()
+                fecha = fechaRegistro
             )
             registroDao.insertar(registro)
 
             limpiarPeso()
+
+            val printerName = settingsDataStore.printerDeviceFlow.first()
+            if (printerName.isBlank()) {
+                _printStatus.value = "Guardado. Selecciona una impresora en Configuración."
+                return@launch
+            }
 
             _printStatus.value = "Imprimiendo ticket..."
             val exito = printCattleTicketUseCase(
@@ -105,7 +119,8 @@ class WeightViewModel(
                 sexo = sexo,
                 pesoKg = pesoAGuardar,
                 titulo = header,
-                piePagina = footer
+                piePagina = footer,
+                fecha = fechaRegistro
             )
             _printStatus.value = if (exito) {
                 "¡Ticket impreso y guardado con éxito!"
@@ -116,7 +131,6 @@ class WeightViewModel(
     }
 
     fun reimprimirUltimoTicket(
-        printerName: String = "Printer001",
         header: String,
         footer: String
     ) {
@@ -128,6 +142,12 @@ class WeightViewModel(
                 return@launch
             }
 
+            val printerName = settingsDataStore.printerDeviceFlow.first()
+            if (printerName.isBlank()) {
+                _printStatus.value = "Selecciona una impresora en Configuración."
+                return@launch
+            }
+
             _printStatus.value = "Reimprimiendo último ticket..."
             val exito = printCattleTicketUseCase(
                 printerName = printerName,
@@ -135,7 +155,8 @@ class WeightViewModel(
                 sexo = ultimoRegistro.sexo,
                 pesoKg = ultimoRegistro.peso,
                 titulo = header,
-                piePagina = footer
+                piePagina = footer,
+                fecha = ultimoRegistro.fecha   // fecha/hora ORIGINAL del registro
             )
             _printStatus.value = if (exito) {
                 "¡Reimpresión exitosa!"
@@ -145,10 +166,27 @@ class WeightViewModel(
         }
     }
 
-    fun guardarConfiguracionTicket(header: String, footer: String) {
+    fun guardarConfiguracion(
+        header: String,
+        footer: String,
+        indicatorFormat: String,
+        indicatorDevice: String,
+        printerDevice: String
+    ) {
         viewModelScope.launch {
+            val deviceAnterior = settingsDataStore.indicatorDeviceFlow.first()
+            val formatoAnterior = settingsDataStore.indicatorFormatFlow.first()
+
             settingsDataStore.saveTicketSettings(header, footer)
-            _printStatus.value = "Configuración del ticket guardada"
+            settingsDataStore.saveDeviceSettings(indicatorFormat, indicatorDevice, printerDevice)
+
+            // Si cambió el indicador o su formato, reconecta con la nueva selección
+            if (indicatorDevice != deviceAnterior || indicatorFormat != formatoAnterior) {
+                limpiarPeso()
+                connect()
+            }
+
+            _printStatus.value = "Configuración guardada"
         }
     }
 

@@ -15,13 +15,15 @@ class PrinterRepositoryImpl(
         sexo: String,
         pesoKg: Double?,
         titulo: String,
-        piePagina: String
+        piePagina: String,
+        fecha: String?
     ): Boolean {
         val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
-        val success = printerHelper.printCattleTicket(socket, areteId, sexo, pesoKg, titulo, piePagina)
+        val success = printerHelper.printCattleTicket(socket, areteId, sexo, pesoKg, titulo, piePagina, fecha)
         try { socket.close() } catch (_: Exception) {}
         return success
     }
+
     override suspend fun printTrailerEntrada(
         printerName: String,
         placas: String,

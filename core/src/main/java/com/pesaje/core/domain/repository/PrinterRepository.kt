@@ -7,7 +7,8 @@ interface PrinterRepository {
         sexo: String,
         pesoKg: Double?,
         titulo: String,
-        piePagina: String
+        piePagina: String,
+        fecha: String? = null
     ): Boolean
 
     suspend fun printTrailerEntrada(

@@ -9,16 +9,25 @@ import java.io.File
 import java.io.FileWriter
 
 class CsvExportRepositoryImpl : CsvExportRepository {
+
+    // Quita / \ : * ? " < > | y caracteres de control; evita nombres vacíos
+    private fun sanitizarNombreArchivo(nombre: String): String {
+        val sinExtension = nombre.trim().let {
+            if (it.endsWith(".csv", ignoreCase = true)) it.dropLast(4) else it
+        }
+        val limpio = sinExtension
+            .replace(Regex("[\\\\/:*?\"<>|\\p{Cntrl}]+"), "_")
+            .trim(' ', '.', '_')
+            .take(100)
+        return (limpio.ifEmpty { "registros_ganado" }) + ".csv"
+    }
+
     override fun exportarYCompartir(
         context: Context,
         nombreArchivo: String,
         registros: List<RegistroPesajeGanado>
     ) {
-        val nombreLimpio = if (nombreArchivo.endsWith(".csv", ignoreCase = true)) {
-            nombreArchivo
-        } else {
-            "$nombreArchivo.csv"
-        }
+        val nombreLimpio = sanitizarNombreArchivo(nombreArchivo)
 
         val folder = File(context.filesDir, "csv_exports")
         if (!folder.exists()) folder.mkdirs()
@@ -28,10 +37,10 @@ class CsvExportRepositoryImpl : CsvExportRepository {
         try {
             val writer = FileWriter(file)
 
-            // 1. BOM para asegurar que Excel reconozca codificación UTF-8 correctamente (acentos, caracteres)
+            // 1. BOM para que Excel reconozca UTF-8 (acentos, caracteres)
             writer.write("\uFEFF")
 
-            // 2. Encabezados limpios con salto de línea estándar (\n)
+            // 2. Encabezados
             writer.append("ID,Arete,Sexo,Peso (kg),Fecha,Hora\n")
 
             registros.forEach { registro ->
@@ -42,9 +51,9 @@ class CsvExportRepositoryImpl : CsvExportRepository {
                 val horaSolo =
                     if (espacioIndex != -1) textoFecha.substring(espacioIndex + 1) else ""
 
-                // 3. Eliminación de dobles barras invertidas en comillas y salto de línea
                 val pesoFormateado = String.format(java.util.Locale.US, "%.1f", registro.peso)
-                writer.append("${registro.id},\"${registro.arete}\",\"${registro.sexo}\",$pesoFormateado,\"$fechaSolo\",\"$horaSolo\"\n")            }
+                writer.append("${registro.id},\"${registro.arete}\",\"${registro.sexo}\",$pesoFormateado,\"$fechaSolo\",\"$horaSolo\"\n")
+            }
 
             writer.flush()
             writer.close()
@@ -55,7 +64,7 @@ class CsvExportRepositoryImpl : CsvExportRepository {
                 file
             )
 
-            // 4. Tipo MIME estándar para compatibilidad con aplicaciones de hojas de cálculo
+            // 3. MIME estándar para apps de hojas de cálculo
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/csv"
                 putExtra(Intent.EXTRA_STREAM, uri)

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.pesaje.core.domain.model.IndicatorProfiles
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -23,6 +24,17 @@ class SettingsDataStore(private val context: Context) {
         // --- TRÁILER SALIDA ---
         val TRAILER_SALIDA_HEADER_KEY = stringPreferencesKey("trailer_salida_header")
         val TRAILER_SALIDA_FOOTER_KEY = stringPreferencesKey("trailer_salida_footer")
+
+        // --- DISPOSITIVOS ---
+        val INDICATOR_DEVICE_KEY = stringPreferencesKey("indicator_device")
+        val INDICATOR_FORMAT_KEY = stringPreferencesKey("indicator_format")
+        val PRINTER_DEVICE_KEY = stringPreferencesKey("printer_device")
+
+        // Formatos disponibles (vienen de IndicatorProfiles)
+        val MODELOS_FORMATO = IndicatorProfiles.nombres
+
+        const val DEFAULT_INDICATOR_DEVICE = "BL243902"
+        const val DEFAULT_PRINTER_DEVICE = "Printer001"
     }
 
     // ==========================================
@@ -40,6 +52,34 @@ class SettingsDataStore(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[TICKET_HEADER_KEY] = header
             prefs[TICKET_FOOTER_KEY] = footer
+        }
+    }
+
+    // ==========================================
+    // DISPOSITIVOS (INDICADOR E IMPRESORA)
+    // ==========================================
+    val indicatorDeviceFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[INDICATOR_DEVICE_KEY] ?: DEFAULT_INDICATOR_DEVICE
+    }
+
+    val indicatorFormatFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[INDICATOR_FORMAT_KEY]?.takeIf { it in MODELOS_FORMATO }
+            ?: IndicatorProfiles.LP7516.nombre
+    }
+
+    val printerDeviceFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[PRINTER_DEVICE_KEY] ?: DEFAULT_PRINTER_DEVICE
+    }
+
+    suspend fun saveDeviceSettings(
+        indicatorFormat: String,
+        indicatorDevice: String,
+        printerDevice: String
+    ) {
+        context.dataStore.edit { prefs ->
+            prefs[INDICATOR_FORMAT_KEY] = indicatorFormat
+            prefs[INDICATOR_DEVICE_KEY] = indicatorDevice
+            prefs[PRINTER_DEVICE_KEY] = printerDevice
         }
     }
 

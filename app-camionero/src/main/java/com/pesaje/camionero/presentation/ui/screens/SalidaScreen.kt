@@ -59,7 +59,6 @@ fun SalidaScreen(
             viewModel.clearMensaje()
         }
     }
-
     Column(
         modifier = modifier
             .fillMaxSize()
