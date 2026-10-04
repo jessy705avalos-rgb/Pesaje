@@ -56,6 +56,11 @@ class TrailerViewModel(
     val salidaFooter: StateFlow<String> = settingsDataStore.trailerSalidaFooterFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Regrese pronto")
 
+    // --- Configuración de dispositivos ---
+    val indicatorDevice = settingsDataStore.indicatorDeviceFlow
+    val indicatorFormat = settingsDataStore.indicatorFormatFlow
+    val printerDevice = settingsDataStore.printerDeviceFlow
+
     val vehiculosAbiertos: StateFlow<List<RegistroPesajeTrailer>> =
         trailerRepository.obtenerAbiertos()
             .stateIn(
@@ -91,20 +96,39 @@ class TrailerViewModel(
         viewModelScope.launch { repository.setTare() }
     }
 
-    fun guardarConfiguracionTickets(
+    fun guardarConfiguracion(
         eHeader: String,
         eFooter: String,
         sHeader: String,
-        sFooter: String
+        sFooter: String,
+        indicatorFormat: String,
+        indicatorDevice: String,
+        printerDevice: String
     ) {
         viewModelScope.launch {
+            val deviceAnterior = settingsDataStore.indicatorDeviceFlow.first()
+            val formatoAnterior = settingsDataStore.indicatorFormatFlow.first()
+
             settingsDataStore.saveTrailerTicketSettings(eHeader, eFooter, sHeader, sFooter)
+            settingsDataStore.saveDeviceSettings(indicatorFormat, indicatorDevice, printerDevice)
+
+            // Si cambió el indicador o su formato, reconecta con la nueva selección
+            if (indicatorDevice != deviceAnterior || indicatorFormat != formatoAnterior) {
+                _currentWeight.value = null
+                connect()
+            }
+
+            _mensaje.value = "Configuración guardada"
         }
     }
 
+    // Devuelve la impresora elegida en Configuración (o null si no hay)
+    private suspend fun impresoraElegida(): String? =
+        settingsDataStore.printerDeviceFlow.first().takeIf { it.isNotBlank() }
+
     fun registrarEntrada(
         placas: String, conductor: String, carga: String,
-        imprimirDespues: Boolean = false, printerName: String = "Printer001"
+        imprimirDespues: Boolean = false
     ) {
         val pesoActual = currentWeight.value?.kilograms
         if (pesoActual == null || placas.isBlank() || conductor.isBlank()) {
@@ -124,9 +148,15 @@ class TrailerViewModel(
             )
             trailerRepository.registrarEntrada(registro)
             Log.d(TAG, "✅ Entrada registrada: $registro")
-            _currentWeight.value = null // limpiamos el peso
+            _currentWeight.value = null
 
             if (imprimirDespues) {
+                val printerName = impresoraElegida()
+                if (printerName == null) {
+                    _mensaje.value = "Entrada registrada. Selecciona una impresora en Configuración."
+                    return@launch
+                }
+
                 _mensaje.value = "Imprimiendo ticket..."
                 val titulo = settingsDataStore.trailerEntradaHeaderFlow.first()
                 val piePagina = settingsDataStore.trailerEntradaFooterFlow.first()
@@ -142,7 +172,7 @@ class TrailerViewModel(
                     piePagina = piePagina
                 )
                 _mensaje.value =
-                    if (exito) "¡Ticket entrada impreso con éxito!" else "Entrada registrada, pero falló la impresión"
+                    if (exito) "¡Ticket entrada impreso con éxito!" else "Entrada registrada, pero falló la impresión en '$printerName'"
             } else {
                 _mensaje.value = "Entrada registrada correctamente"
             }
@@ -155,7 +185,7 @@ class TrailerViewModel(
         }
     }
 
-    fun registrarSalida(imprimirDespues: Boolean = false, printerName: String = "Printer001") {
+    fun registrarSalida(imprimirDespues: Boolean = false) {
         val vehiculo = vehiculoSeleccionado.value
         val pesoSalidaActual = currentWeight.value?.kilograms
         if (vehiculo == null || pesoSalidaActual == null) {
@@ -173,6 +203,13 @@ class TrailerViewModel(
             _currentWeight.value = null
 
             if (imprimirDespues) {
+                val printerName = impresoraElegida()
+                if (printerName == null) {
+                    _mensaje.value = "Salida registrada. Selecciona una impresora en Configuración."
+                    _vehiculoSeleccionado.value = null
+                    return@launch
+                }
+
                 val titulo = settingsDataStore.trailerSalidaHeaderFlow.first()
                 val piePagina = settingsDataStore.trailerSalidaFooterFlow.first()
 
@@ -190,7 +227,7 @@ class TrailerViewModel(
                     piePagina = piePagina
                 )
                 _mensaje.value =
-                    if (exito) "Salida registrada e impresa. Neto: ${pesoNeto.toInt()} kg" else "Salida registrada, pero falló la impresión"
+                    if (exito) "Salida registrada e impresa. Neto: ${pesoNeto.toInt()} kg" else "Salida registrada, pero falló la impresión en '$printerName'"
             } else {
                 _mensaje.value = "Salida registrada. Peso neto: ${pesoNeto.toInt()} kg"
             }
@@ -215,62 +252,75 @@ class TrailerViewModel(
         super.onCleared()
     }
 
-    fun reimprimirUltimoTicketEntrada(printerName: String = "Printer001") {
+    fun reimprimirUltimoTicketEntrada() {
         viewModelScope.launch(Dispatchers.IO) {
             val ultimo = trailerRepository.obtenerUltimoEntrada()
-            if (ultimo != null) {
-                val titulo = settingsDataStore.trailerEntradaHeaderFlow.first()
-                val piePagina = settingsDataStore.trailerEntradaFooterFlow.first()
-
-                val exito = printTrailerEntradaUseCase(
-                    printerName = printerName,
-                    placas = ultimo.placas,
-                    conductor = ultimo.conductor,
-                    carga = ultimo.carga,
-                    pesoEntrada = ultimo.pesoEntrada,
-                    fechaEntrada = ultimo.fechaEntrada,
-                    titulo = titulo,
-                    piePagina = piePagina
-                )
-                _mensaje.value = if (exito) "Reimprimiendo último ticket de entrada..." else "Error al imprimir el ticket."
-            } else {
+            if (ultimo == null) {
                 _mensaje.value = "No hay registros de entrada para reimprimir."
+                return@launch
             }
+            val printerName = impresoraElegida()
+            if (printerName == null) {
+                _mensaje.value = "Selecciona una impresora en Configuración."
+                return@launch
+            }
+
+            val titulo = settingsDataStore.trailerEntradaHeaderFlow.first()
+            val piePagina = settingsDataStore.trailerEntradaFooterFlow.first()
+
+            val exito = printTrailerEntradaUseCase(
+                printerName = printerName,
+                placas = ultimo.placas,
+                conductor = ultimo.conductor,
+                carga = ultimo.carga,
+                pesoEntrada = ultimo.pesoEntrada,
+                fechaEntrada = ultimo.fechaEntrada,   // fecha ORIGINAL del registro
+                titulo = titulo,
+                piePagina = piePagina
+            )
+            _mensaje.value = if (exito) "Reimprimiendo último ticket de entrada..." else "Error al imprimir en '$printerName'."
         }
     }
 
-    fun reimprimirUltimoTicketSalida(printerName: String = "Printer001") {
+    fun reimprimirUltimoTicketSalida() {
         viewModelScope.launch(Dispatchers.IO) {
             val ultimo = trailerRepository.obtenerUltimoSalida()
-            if (ultimo != null) {
-                val pesoSalidaLocal = ultimo.pesoSalida
-                val fechaSalidaLocal = ultimo.fechaSalida
-
-                if (pesoSalidaLocal != null && fechaSalidaLocal != null) {
-                    val pesoNeto = kotlin.math.abs(ultimo.pesoEntrada - pesoSalidaLocal)
-                    val titulo = settingsDataStore.trailerSalidaHeaderFlow.first()
-                    val piePagina = settingsDataStore.trailerSalidaFooterFlow.first()
-
-                    val exito = printTrailerSalidaUseCase(
-                        printerName = printerName,
-                        placas = ultimo.placas,
-                        conductor = ultimo.conductor,
-                        carga = ultimo.carga,
-                        pesoEntrada = ultimo.pesoEntrada,
-                        fechaEntrada = ultimo.fechaEntrada,
-                        pesoSalida = pesoSalidaLocal,
-                        fechaSalida = fechaSalidaLocal,
-                        pesoNeto = pesoNeto,
-                        titulo = titulo,
-                        piePagina = piePagina
-                    )
-                    _mensaje.value = if (exito) "Reimprimiendo último ticket de salida..." else "Error al imprimir el ticket."
-                } else {
-                    _mensaje.value = "El último registro de salida está incompleto."
-                }
-            } else {
+            if (ultimo == null) {
                 _mensaje.value = "No hay registros de salida para reimprimir."
+                return@launch
             }
+
+            val pesoSalidaLocal = ultimo.pesoSalida
+            val fechaSalidaLocal = ultimo.fechaSalida
+            if (pesoSalidaLocal == null || fechaSalidaLocal == null) {
+                _mensaje.value = "El último registro de salida está incompleto."
+                return@launch
+            }
+
+            val printerName = impresoraElegida()
+            if (printerName == null) {
+                _mensaje.value = "Selecciona una impresora en Configuración."
+                return@launch
+            }
+
+            val pesoNeto = abs(ultimo.pesoEntrada - pesoSalidaLocal)
+            val titulo = settingsDataStore.trailerSalidaHeaderFlow.first()
+            val piePagina = settingsDataStore.trailerSalidaFooterFlow.first()
+
+            val exito = printTrailerSalidaUseCase(
+                printerName = printerName,
+                placas = ultimo.placas,
+                conductor = ultimo.conductor,
+                carga = ultimo.carga,
+                pesoEntrada = ultimo.pesoEntrada,
+                fechaEntrada = ultimo.fechaEntrada,
+                pesoSalida = pesoSalidaLocal,
+                fechaSalida = fechaSalidaLocal,
+                pesoNeto = pesoNeto,
+                titulo = titulo,
+                piePagina = piePagina
+            )
+            _mensaje.value = if (exito) "Reimprimiendo último ticket de salida..." else "Error al imprimir en '$printerName'."
         }
     }
 }

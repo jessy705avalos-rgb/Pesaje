@@ -42,8 +42,7 @@ class MainActivity : ComponentActivity() {
         }
 
     // ---------- Báscula ----------
-    private val weightRepository by lazy { BleWeightRepository(applicationContext) }
-
+    private val weightRepository by lazy { BleWeightRepository(applicationContext, settingsDataStore) }
     // ---------- DataStore ----------
     private val settingsDataStore by lazy { SettingsDataStore(applicationContext) }
 

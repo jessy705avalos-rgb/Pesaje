@@ -40,6 +40,7 @@ fun EntradaScreen(
 ) {
     val isConnected by viewModel.isConnected.collectAsState()
     val currentWeight by viewModel.currentWeight.collectAsState()
+    val indicatorName by viewModel.indicatorDevice.collectAsState(initial = "")
 
     var placas by remember { mutableStateOf("") }
     var conductor by remember { mutableStateOf("") }
@@ -137,7 +138,7 @@ fun EntradaScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "BL243902",
+                        text = indicatorName.ifBlank { "Sin indicador" },
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -317,7 +318,6 @@ fun EntradaScreen(
                         conductor = conductor,
                         carga = carga,
                         imprimirDespues = true,
-                        printerName = "Printer001"
                     )
                     placas = ""
                     conductor = ""
@@ -341,7 +341,7 @@ fun EntradaScreen(
             // 2. Reimprimir último ticket (ABAJO)
             OutlinedButton(
                 onClick = {
-                    viewModel.reimprimirUltimoTicketEntrada(printerName = "Printer001")
+                    viewModel.reimprimirUltimoTicketEntrada()
                 },
                 modifier = Modifier
                     .fillMaxWidth()

@@ -1,15 +1,24 @@
 package com.pesaje.camionero.presentation.ui.screens
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -22,15 +31,114 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pesaje.camionero.presentation.ui.theme.CardBackground
-import com.pesaje.camionero.presentation.ui.theme.SaveYellow
+import androidx.core.content.ContextCompat
 import com.pesaje.camionero.R
+import com.pesaje.camionero.presentation.ui.theme.CardBackground
+import com.pesaje.camionero.presentation.ui.theme.ConnectedGreen
+import com.pesaje.camionero.presentation.ui.theme.SaveYellow
+import com.pesaje.core.data.local.SettingsDataStore
+
+private fun tienePermisoBluetooth(context: Context): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+
+@SuppressLint("MissingPermission")
+private fun obtenerDispositivosVinculados(context: Context): List<String> {
+    if (!tienePermisoBluetooth(context)) return emptyList()
+    val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter ?: return emptyList()
+    return try {
+        adapter.bondedDevices.mapNotNull { it.name }.distinct().sorted()
+    } catch (e: SecurityException) {
+        emptyList()
+    }
+}
+
+// Dropdown genérico de solo selección
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CampoDropdown(
+    label: String,
+    opciones: List<String>,
+    seleccion: String,
+    onSeleccion: (String) -> Unit,
+    placeholder: String = "Selecciona una opción"
+) {
+    var expandido by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expandido,
+        onExpandedChange = { expandido = it }
+    ) {
+        OutlinedTextField(
+            value = seleccion,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            placeholder = { Text(placeholder) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandido) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+            shape = RoundedCornerShape(12.dp)
+        )
+        ExposedDropdownMenu(
+            expanded = expandido,
+            onDismissRequest = { expandido = false }
+        ) {
+            if (opciones.isEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("Sin dispositivos vinculados") },
+                    onClick = { expandido = false },
+                    enabled = false
+                )
+            }
+            opciones.forEach { opcion ->
+                DropdownMenuItem(
+                    text = { Text(opcion) },
+                    onClick = {
+                        onSeleccion(opcion)
+                        expandido = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+// Campo multilínea que crece mientras se escribe (Enter = salto de línea)
+@Composable
+private fun CampoTicket(
+    label: String,
+    valor: String,
+    onValor: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onValor,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = false,
+        minLines = 2,
+        maxLines = Int.MAX_VALUE,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Sentences,
+            imeAction = ImeAction.Default
+        ),
+        shape = RoundedCornerShape(12.dp)
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -38,16 +146,43 @@ fun SettingsScreen(
     initialEntradaFooter: String,
     initialSalidaHeader: String,
     initialSalidaFooter: String,
+    initialIndicatorFormat: String,
+    initialIndicatorDevice: String,
+    initialPrinterDevice: String,
     onBackClick: () -> Unit,
-    onSave: (String, String, String, String) -> Unit,
+    onSave: (
+        entradaHeader: String,
+        entradaFooter: String,
+        salidaHeader: String,
+        salidaFooter: String,
+        indicatorFormat: String,
+        indicatorDevice: String,
+        printerDevice: String
+    ) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     var entradaHeader by remember(initialEntradaHeader) { mutableStateOf(initialEntradaHeader) }
     var entradaFooter by remember(initialEntradaFooter) { mutableStateOf(initialEntradaFooter) }
-
     var salidaHeader by remember(initialSalidaHeader) { mutableStateOf(initialSalidaHeader) }
     var salidaFooter by remember(initialSalidaFooter) { mutableStateOf(initialSalidaFooter) }
+    var indicatorFormat by remember(initialIndicatorFormat) { mutableStateOf(initialIndicatorFormat) }
+    var indicatorDevice by remember(initialIndicatorDevice) { mutableStateOf(initialIndicatorDevice) }
+    var printerDevice by remember(initialPrinterDevice) { mutableStateOf(initialPrinterDevice) }
     var expandidoEmpresa by remember { mutableStateOf(false) }
+
+    // Dispositivos Bluetooth vinculados (pide permiso en Android 12+ si falta)
+    var dispositivos by remember { mutableStateOf(obtenerDispositivosVinculados(context)) }
+    val permisoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { dispositivos = obtenerDispositivosVinculados(context) }
+
+    LaunchedEffect(Unit) {
+        if (!tienePermisoBluetooth(context)) {
+            permisoLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -71,7 +206,84 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Título y descripción explicativa
+            // ===== 1. DISPOSITIVOS =====
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bluetooth,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Dispositivos",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        TextButton(
+                            onClick = { dispositivos = obtenerDispositivosVinculados(context) },
+                            colors = ButtonDefaults.textButtonColors(contentColor = ConnectedGreen)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bluetooth,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text("Actualizar", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    // a) Indicador de peso
+                    CampoDropdown(
+                        label = "Indicador de peso",
+                        opciones = dispositivos,
+                        seleccion = indicatorDevice,
+                        onSeleccion = { indicatorDevice = it },
+                        placeholder = "Selecciona un dispositivo"
+                    )
+
+                    // b) Formato de datos del indicador
+                    CampoDropdown(
+                        label = "Formato de datos del indicador",
+                        opciones = SettingsDataStore.MODELOS_FORMATO,
+                        seleccion = indicatorFormat,
+                        onSeleccion = { indicatorFormat = it }
+                    )
+
+                    // c) Impresora
+                    CampoDropdown(
+                        label = "Impresora",
+                        opciones = dispositivos,
+                        seleccion = printerDevice,
+                        onSeleccion = { printerDevice = it },
+                        placeholder = "Selecciona un dispositivo"
+                    )
+                }
+            }
+
+            // ===== 2. EDICIÓN DE TICKETS =====
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "Edición de tickets de impresión",
@@ -80,7 +292,8 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            // TARJETA 1: Configuración Ticket Entrada
+
+            // TARJETA: Ticket de ENTRADA
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -102,27 +315,12 @@ fun SettingsScreen(
 
                     HorizontalDivider()
 
-                    OutlinedTextField(
-                        value = entradaHeader,
-                        onValueChange = { entradaHeader = it },
-                        label = { Text("Título (Encabezado)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = entradaFooter,
-                        onValueChange = { entradaFooter = it },
-                        label = { Text("Pie de Página") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                    CampoTicket("Título (Encabezado)", entradaHeader) { entradaHeader = it }
+                    CampoTicket("Pie de Página", entradaFooter) { entradaFooter = it }
                 }
             }
 
-            // TARJETA 2: Configuración Ticket Salida
+            // TARJETA: Ticket de SALIDA
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -144,30 +342,19 @@ fun SettingsScreen(
 
                     HorizontalDivider()
 
-                    OutlinedTextField(
-                        value = salidaHeader,
-                        onValueChange = { salidaHeader = it },
-                        label = { Text("Título (Encabezado)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    OutlinedTextField(
-                        value = salidaFooter,
-                        onValueChange = { salidaFooter = it },
-                        label = { Text("Pie de Página") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                    CampoTicket("Título (Encabezado)", salidaHeader) { salidaHeader = it }
+                    CampoTicket("Pie de Página", salidaFooter) { salidaFooter = it }
                 }
             }
 
-            // Botón Guardar
+            // ===== 3. BOTÓN GUARDAR =====
             Button(
                 onClick = {
-                    onSave(entradaHeader, entradaFooter, salidaHeader, salidaFooter)
+                    onSave(
+                        entradaHeader, entradaFooter,
+                        salidaHeader, salidaFooter,
+                        indicatorFormat, indicatorDevice, printerDevice
+                    )
                     onBackClick()
                 },
                 modifier = Modifier
@@ -182,11 +369,9 @@ fun SettingsScreen(
                 Text("Guardar Configuración", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
 
-            Spacer(modifier=Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            //==================================================
-            // ======= SECCIÓN ACERCA DE LA EMPRESA ================
-
+            // ===== 4. ACERCA DE LA EMPRESA (colapsable) =====
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -328,9 +513,7 @@ fun SettingsScreen(
                 }
             }
 
-            // =========================================================================
-            // === PIE DE PÁGINA DE LA PANTALLA: VERSIÓN (GRIS, CHICO Y CENTRADO) ===
-            // =========================================================================
+            // ===== 5. VERSIÓN DE LA APP =====
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
@@ -339,7 +522,7 @@ fun SettingsScreen(
                 color = Color.Gray,
                 fontWeight = FontWeight.Normal,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
         }
     }

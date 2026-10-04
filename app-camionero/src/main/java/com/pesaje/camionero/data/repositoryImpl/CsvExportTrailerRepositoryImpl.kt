@@ -9,17 +9,36 @@ import java.io.File
 import java.io.FileWriter
 
 class CsvExportTrailerRepositoryImpl : CsvExportTrailerRepository {
+    // Quita / \ : * ? " < > | y caracteres de control; evita nombres vacíos
+    private fun sanitizarNombreArchivo(nombre: String): String {
+        val sinExtension = nombre.trim().let {
+            if (it.endsWith(".csv", ignoreCase = true)) it.dropLast(4) else it
+        }
+        val limpio = sinExtension
+            .replace(Regex("[\\\\/:*?\"<>|\\p{Cntrl}]+"), "_")
+            .trim(' ', '.', '_')
+            .take(100)
+        return (limpio.ifEmpty { "registros_trailer" }) + ".csv"
+    }
+
+    // Función auxiliar para separar fecha y hora a partir de una cadena "dd/MM/yyyy HH:mm"
+    private fun separarFechaYHora(fechaCompleta: String?): Pair<String, String> {
+        val texto = fechaCompleta?.trim().orEmpty()
+        if (texto.isEmpty()) return Pair("", "")
+        val espacioIndex = texto.indexOf(' ')
+        return if (espacioIndex != -1) {
+            Pair(texto.substring(0, espacioIndex), texto.substring(espacioIndex + 1))
+        } else {
+            Pair(texto, "")
+        }
+    }
+
     override fun exportarYCompartir(
         context: Context,
         nombreArchivo: String,
         registros: List<RegistroPesajeTrailer>
     ) {
-        val nombreLimpio =
-            if (nombreArchivo.endsWith(".csv", ignoreCase = true)) {
-                nombreArchivo
-            } else {
-                "$nombreArchivo.csv"
-            }
+        val nombreLimpio = sanitizarNombreArchivo(nombreArchivo)
 
         val folder = File(context.filesDir, "csv_exports")
         if (!folder.exists()) folder.mkdirs()
@@ -28,16 +47,22 @@ class CsvExportTrailerRepositoryImpl : CsvExportTrailerRepository {
 
         try {
             val writer = FileWriter(file)
-            writer.append("ID,Placas,Conductor,Carga,Peso Entrada,Fecha Entrada,Peso Salida,Fecha Salida,Estado\n")
+            writer.write("\uFEFF")
+
+            // Encabezados con las 4 columnas de fecha y hora separadas
+            writer.append("ID,Placas,Conductor,Carga,Peso Entrada,Fecha Entrada,Hora Entrada,Peso Salida,Fecha Salida,Hora Salida,Estado\n")
 
             registros.forEach { r ->
                 val entradaEnt = r.pesoEntrada.toInt()
                 val salidaEnt = r.pesoSalida?.toInt()?.toString() ?: ""
 
+                val (fechaEntradaSolo, horaEntradaSolo) = separarFechaYHora(r.fechaEntrada)
+                val (fechaSalidaSolo, horaSalidaSolo) = separarFechaYHora(r.fechaSalida)
+
                 writer.append(
                     "${r.id},\"${r.placas}\",\"${r.conductor}\",\"${r.carga}\"," +
-                            "$entradaEnt,\"${r.fechaEntrada}\"," +
-                            "$salidaEnt,\"${r.fechaSalida ?: ""}\"," +
+                            "$entradaEnt,\"$fechaEntradaSolo\",\"$horaEntradaSolo\"," +
+                            "$salidaEnt,\"$fechaSalidaSolo\",\"$horaSalidaSolo\"," +
                             "${if (r.estaAbierto) "Abierto" else "Cerrado"}\n"
                 )
             }

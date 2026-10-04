@@ -45,6 +45,7 @@ fun SalidaScreen(
     val currentWeight by viewModel.currentWeight.collectAsState()
     val vehiculosAbiertos by viewModel.vehiculosAbiertos.collectAsState()
     val vehiculoSeleccionado by viewModel.vehiculoSeleccionado.collectAsState()
+    val indicatorName by viewModel.indicatorDevice.collectAsState(initial = "")
 
     // ---------- Datos que solo le importan a ESTA pantalla mientras el usuario interactúa ----------
     var expandido by remember { mutableStateOf(false) }
@@ -124,7 +125,7 @@ fun SalidaScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "BL243902",
+                        text = indicatorName.ifBlank { "Sin indicador" },
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -327,7 +328,7 @@ fun SalidaScreen(
             // 1. Registrar e Imprimir (ARRIBA)
             Button(
                 onClick = {
-                    viewModel.registrarSalida(imprimirDespues = true, printerName = "Printer001")
+                    viewModel.registrarSalida(imprimirDespues = true)
                     placaElegida = ""
                 },
                 enabled = vehiculoSeleccionado != null && currentWeight != null,
@@ -348,7 +349,7 @@ fun SalidaScreen(
             // 2. Reimprimir último ticket (ABAJO)
             OutlinedButton(
                 onClick = {
-                    viewModel.reimprimirUltimoTicketSalida(printerName = "Printer001")
+                    viewModel.reimprimirUltimoTicketSalida()
                 },
                 modifier = Modifier
                     .fillMaxWidth()

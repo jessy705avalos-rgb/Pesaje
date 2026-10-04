@@ -16,6 +16,7 @@ class HistorialTrailerViewModel(
     private val csvExportTrailerRepository: CsvExportTrailerRepository
 ) : ViewModel() {
 
+
     val registros: StateFlow<List<RegistroPesajeTrailer>> =
         trailerRepository.obtenerTodos().stateIn(
             scope = viewModelScope,

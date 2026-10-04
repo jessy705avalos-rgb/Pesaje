@@ -30,6 +30,10 @@ fun MainScreen(
     val entradaFooterState by viewModel.entradaFooter.collectAsState()
     val salidaHeaderState by viewModel.salidaHeader.collectAsState()
     val salidaFooterState by viewModel.salidaFooter.collectAsState()
+    // Configuración de dispositivos
+    val indicatorDeviceState by viewModel.indicatorDevice.collectAsState(initial = "")
+    val indicatorFormatState by viewModel.indicatorFormat.collectAsState(initial = "")
+    val printerDeviceState by viewModel.printerDevice.collectAsState(initial = "")
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -87,9 +91,14 @@ fun MainScreen(
                     initialEntradaFooter = entradaFooterState,
                     initialSalidaHeader = salidaHeaderState,
                     initialSalidaFooter = salidaFooterState,
+                    initialIndicatorFormat = indicatorFormatState,
+                    initialIndicatorDevice = indicatorDeviceState,
+                    initialPrinterDevice = printerDeviceState,
                     onBackClick = { pantallaActual = "entrada" },
-                    onSave = { eHeader, eFooter, sHeader, sFooter ->
-                        viewModel.guardarConfiguracionTickets(eHeader, eFooter, sHeader, sFooter)
+                    onSave = { eHeader, eFooter, sHeader, sFooter, indFormat, indDevice, prnDevice ->
+                        viewModel.guardarConfiguracion(
+                            eHeader, eFooter, sHeader, sFooter, indFormat, indDevice, prnDevice
+                        )
                     },
                     modifier = Modifier.padding(innerPadding)
                 )
