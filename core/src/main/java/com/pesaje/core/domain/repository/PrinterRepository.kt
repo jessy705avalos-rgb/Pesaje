@@ -8,7 +8,8 @@ interface PrinterRepository {
         pesoKg: Double?,
         titulo: String,
         piePagina: String,
-        fecha: String? = null
+        fecha: String? = null,
+        decimales: Int = 1
     ): Boolean
 
     suspend fun printTrailerEntrada(
@@ -18,7 +19,7 @@ interface PrinterRepository {
         carga: String,
         pesoEntrada: Double,
         fechaEntrada: String,
-        titulo: String= "ENTRADA TRAILER",
+        titulo: String = "ENTRADA TRAILER",
         piePagina: String = "Conserve su ticket"
     ): Boolean
 

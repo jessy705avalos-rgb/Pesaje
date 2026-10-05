@@ -51,7 +51,7 @@ class CsvExportRepositoryImpl : CsvExportRepository {
                 val horaSolo =
                     if (espacioIndex != -1) textoFecha.substring(espacioIndex + 1) else ""
 
-                val pesoFormateado = String.format(java.util.Locale.US, "%.1f", registro.peso)
+                val pesoFormateado = java.math.BigDecimal.valueOf(registro.peso).toPlainString()
                 writer.append("${registro.id},\"${registro.arete}\",\"${registro.sexo}\",$pesoFormateado,\"$fechaSolo\",\"$horaSolo\"\n")
             }
 

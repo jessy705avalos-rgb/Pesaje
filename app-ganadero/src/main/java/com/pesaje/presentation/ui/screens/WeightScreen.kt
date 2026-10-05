@@ -184,8 +184,7 @@ fun WeightScreen(
 
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = currentWeight?.kilograms?.let { "%.1f".format(it) } ?: "--.-",
-                        fontSize = 52.sp,
+                        text = currentWeight?.let { "%.${it.decimals}f".format(it.kilograms) } ?: "--.-",                        fontSize = 52.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )

@@ -191,6 +191,7 @@ class BleWeightRepository(
         // Indicador y formato elegidos por el usuario en Configuración
         val deviceName = settingsDataStore.indicatorDeviceFlow.first()
         profile = IndicatorProfiles.fromModel(settingsDataStore.indicatorFormatFlow.first())
+        IndicatorProfiles.resetAuto()
         Log.d(TAG, "Perfil de indicador: ${profile.nombre}")
 
         val device = adapter.bondedDevices.find { it.name == deviceName }

@@ -44,7 +44,8 @@ class TicketPrinterHelper {
         pesoKg: Double?,
         titulo: String = "PESAJE DE GANADO",
         piePagina: String = "Gracias por su visita",
-        fecha: String? = null
+        fecha: String? = null,
+        decimales: Int = 1
     ): Boolean {
         if (socket == null || !socket.isConnected) return false
 
@@ -75,7 +76,7 @@ class TicketPrinterHelper {
                 fecha?.takeIf { it.isNotBlank() }
                     ?: SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
             )
-            val pesoTexto = pesoKg?.let { String.format(Locale.US, "%.1f", it) } ?: "--.-"
+            val pesoTexto = pesoKg?.let { String.format(Locale.US, "%.${decimales}f", it) } ?: "--.-"
             val areteLimpio = areteId.trim()
             val sexoLimpio = sexo.trim()
 

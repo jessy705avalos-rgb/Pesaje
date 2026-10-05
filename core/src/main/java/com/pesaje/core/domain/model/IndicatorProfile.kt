@@ -22,41 +22,99 @@ object IndicatorProfiles {
     private val NET_REGEX = Regex("""\b(NT|NET)\b""", RegexOption.IGNORE_CASE)
     private val OVERLOAD_REGEX = Regex("""\bOL\b""", RegexOption.IGNORE_CASE)
 
-    // ---------- Perfil exacto del LP7516 (igual que estaba) ----------
+    // Cuenta cuántos decimales trae el número tal como lo mandó el indicador
+    private fun contarDecimales(txt: String): Int {
+        val i = txt.indexOfFirst { it == '.' || it == ',' }
+        return if (i < 0) 0 else txt.length - i - 1
+    }
+
+    // ---------- Perfil exacto del LP7516 ----------
     private fun parseLp7516(raw: String): WeightReading? {
         val cleaned = raw.trim()
         val isStable = cleaned.startsWith("ST")
         val isNet = cleaned.contains("NT")
         val match = Regex("[-+]?\\d+\\.?\\d*").find(cleaned.substringAfter("+").ifEmpty { cleaned })
-        val kg = match?.value?.toDoubleOrNull() ?: return null
-        return WeightReading(kilograms = kg, isStable = isStable, isNet = isNet)
+            ?: return null
+        val kg = match.value.toDoubleOrNull() ?: return null
+        return WeightReading(
+            kilograms = kg,
+            isStable = isStable,
+            isNet = isNet,
+            decimals = contarDecimales(match.value)
+        )
     }
 
     // ---------- Perfil automático ----------
-    private fun parseAuto(raw: String): WeightReading? {
-        val cleaned = raw.trim()
-        if (cleaned.isEmpty()) return null
-        if (OVERLOAD_REGEX.containsMatchIn(cleaned)) return null // sobrecarga: no es un peso válido
+    // Lee el peso sin importar el orden de los campos.
+    // La detección de dígitos invertidos existe, pero está APAGADA por defecto.
+    private object AutoParser {
+        var permitirInvertido = false
 
-        val matches = NUM_REGEX.findAll(cleaned).toList()
-        // Prioriza el número que trae unidad pegada; si no, toma el último
-        val m = matches.firstOrNull { it.groupValues[3].isNotEmpty() }
-            ?: matches.lastOrNull()
-            ?: return null
+        private var lastNormal: Double? = null
+        private var lastReversed: Double? = null
+        private var scoreNormal = 0.0
+        private var scoreReversed = 0.0
 
-        var valor = m.groupValues[2].replace(',', '.').toDoubleOrNull() ?: return null
-        if (m.groupValues[1] == "-") valor = -valor
-
-        when (m.groupValues[3].lowercase()) {
-            "lb", "lbs" -> valor *= 0.45359237
-            "g" -> valor /= 1000.0
+        fun reset() {
+            lastNormal = null
+            lastReversed = null
+            scoreNormal = 0.0
+            scoreReversed = 0.0
         }
 
-        // Si la trama no trae indicador de estabilidad se asume estable
-        val isStable = !UNSTABLE_REGEX.containsMatchIn(cleaned) && !cleaned.contains('?')
-        val isNet = NET_REGEX.containsMatchIn(cleaned)
+        private fun aDouble(txt: String): Double? = txt.replace(',', '.').toDoubleOrNull()
 
-        return WeightReading(kilograms = valor, isStable = isStable, isNet = isNet)
+        fun parse(raw: String): WeightReading? {
+            val cleaned = raw.trim()
+            if (cleaned.isEmpty()) return null
+            if (OVERLOAD_REGEX.containsMatchIn(cleaned)) return null
+
+            val matches = NUM_REGEX.findAll(cleaned).toList()
+            val m = matches.firstOrNull { it.groupValues[3].isNotEmpty() }
+                ?: matches.lastOrNull()
+                ?: return null
+
+            val numTxt = m.groupValues[2]
+            val vNormal = aDouble(numTxt) ?: return null
+            val vReversed = aDouble(numTxt.reversed()) ?: return null
+
+            // Signo: antes del número, o pegado al final
+            val signoAtras = cleaned.getOrNull(m.range.last + 1) == '-'
+            val negativo = m.groupValues[1] == "-" || signoAtras
+
+            lastNormal?.let { scoreNormal = scoreNormal * 0.8 + kotlin.math.abs(vNormal - it) }
+            lastReversed?.let { scoreReversed = scoreReversed * 0.8 + kotlin.math.abs(vReversed - it) }
+            lastNormal = vNormal
+            lastReversed = vReversed
+
+            // Solo invierte si el interruptor está encendido Y trae punto Y es claramente más estable
+            val tienePunto = numTxt.contains('.') || numTxt.contains(',')
+            val usarInvertido = permitirInvertido && tienePunto && scoreReversed < scoreNormal * 0.5
+            var valor = if (usarInvertido) vReversed else vNormal
+            if (negativo) valor = -valor
+
+            when (m.groupValues[3].lowercase()) {
+                "lb", "lbs" -> valor *= 0.45359237
+                "g" -> valor /= 1000.0
+            }
+
+            val isStable = !UNSTABLE_REGEX.containsMatchIn(cleaned) && !cleaned.contains('?')
+            val isNet = NET_REGEX.containsMatchIn(cleaned)
+
+            return WeightReading(
+                kilograms = valor,
+                isStable = isStable,
+                isNet = isNet,
+                decimals = contarDecimales(numTxt)
+            )
+        }
+    }
+
+    fun resetAuto() = AutoParser.reset()
+
+    // Enciende o apaga la detección de dígitos invertidos (por defecto: apagada)
+    fun permitirInvertido(valor: Boolean) {
+        AutoParser.permitirInvertido = valor
     }
 
     val AUTO = IndicatorProfile(
@@ -64,7 +122,7 @@ object IndicatorProfiles {
         comandoLeer = "R",
         comandoTara = "T",
         comandoZero = "Z",
-        parser = ::parseAuto
+        parser = AutoParser::parse
     )
 
     val LP7516 = IndicatorProfile(

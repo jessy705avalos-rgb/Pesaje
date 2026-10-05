@@ -86,6 +86,7 @@ class WeightViewModel(
         footer: String
     ) {
         val pesoAGuardar = currentWeight.value?.kilograms
+        val decimalesAGuardar = currentWeight.value?.decimals ?: 1
 
         if (pesoAGuardar == null || areteId.isBlank()) {
             Log.e(TAG, "❌ No se puede guardar: falta el peso o el arete")
@@ -120,7 +121,8 @@ class WeightViewModel(
                 pesoKg = pesoAGuardar,
                 titulo = header,
                 piePagina = footer,
-                fecha = fechaRegistro
+                fecha = fechaRegistro,
+                decimales = decimalesAGuardar
             )
             _printStatus.value = if (exito) {
                 "¡Ticket impreso y guardado con éxito!"
@@ -148,6 +150,12 @@ class WeightViewModel(
                 return@launch
             }
 
+            // CAMBIO 1: calcula los decimales a partir del peso guardado
+            val decimalesReimpresion = java.math.BigDecimal.valueOf(ultimoRegistro.peso)
+                .stripTrailingZeros()
+                .scale()
+                .coerceAtLeast(0)
+
             _printStatus.value = "Reimprimiendo último ticket..."
             val exito = printCattleTicketUseCase(
                 printerName = printerName,
@@ -156,7 +164,8 @@ class WeightViewModel(
                 pesoKg = ultimoRegistro.peso,
                 titulo = header,
                 piePagina = footer,
-                fecha = ultimoRegistro.fecha   // fecha/hora ORIGINAL del registro
+                fecha = ultimoRegistro.fecha,   // fecha/hora ORIGINAL del registro
+                decimales = decimalesReimpresion   // CAMBIO 2: pásalo aquí
             )
             _printStatus.value = if (exito) {
                 "¡Reimpresión exitosa!"
