@@ -1,13 +1,42 @@
 package com.pesaje.core.data.repositoryImpl
 
+import android.bluetooth.BluetoothSocket
+import android.util.Log
 import com.pesaje.core.data.remote.PrinterBluetoothManager
 import com.pesaje.core.data.remote.TicketPrinterHelper
 import com.pesaje.core.domain.repository.PrinterRepository
+import kotlinx.coroutines.delay
+
+private const val TAG = "PESAJE_PRINT"
+
+// Pausa antes de cerrar para que la impresora termine de recibir los datos
+private const val CLOSE_DELAY_MS = 800L
 
 class PrinterRepositoryImpl(
     private val printerBluetoothManager: PrinterBluetoothManager,
     private val printerHelper: TicketPrinterHelper
 ) : PrinterRepository {
+
+    // Conecta, imprime, espera y cierra. Deja logs para saber en qué paso falla.
+    private suspend fun imprimir(
+        printerName: String,
+        tipo: String,
+        bloque: (BluetoothSocket) -> Boolean
+    ): Boolean {
+        Log.d(TAG, "🖨️ [$tipo] conectando a '$printerName'...")
+        val socket = printerBluetoothManager.connectToPrinter(printerName)
+        if (socket == null) {
+            Log.e(TAG, "❌ [$tipo] connectToPrinter devolvió null (no se pudo conectar)")
+            return false
+        }
+
+        val success = bloque(socket)
+        Log.d(TAG, if (success) "✅ [$tipo] datos enviados" else "❌ [$tipo] el helper devolvió false")
+
+        delay(CLOSE_DELAY_MS)
+        try { socket.close() } catch (_: Exception) {}
+        return success
+    }
 
     override suspend fun printCattleTicket(
         printerName: String,
@@ -18,11 +47,8 @@ class PrinterRepositoryImpl(
         piePagina: String,
         fecha: String?,
         decimales: Int
-    ): Boolean {
-        val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
-        val success = printerHelper.printCattleTicket(socket, areteId, sexo, pesoKg, titulo, piePagina, fecha, decimales)
-        try { socket.close() } catch (_: Exception) {}
-        return success
+    ): Boolean = imprimir(printerName, "GANADO") { socket ->
+        printerHelper.printCattleTicket(socket, areteId, sexo, pesoKg, titulo, piePagina, fecha, decimales)
     }
 
     override suspend fun printTrailerEntrada(
@@ -34,13 +60,10 @@ class PrinterRepositoryImpl(
         fechaEntrada: String,
         titulo: String,
         piePagina: String
-    ): Boolean {
-        val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
-        val success = printerHelper.printTrailerEntradaTicket(
+    ): Boolean = imprimir(printerName, "ENTRADA") { socket ->
+        printerHelper.printTrailerEntradaTicket(
             socket, placas, conductor, carga, pesoEntrada, fechaEntrada, titulo, piePagina
         )
-        try { socket.close() } catch (_: Exception) {}
-        return success
     }
 
     override suspend fun printTrailerSalida(
@@ -55,12 +78,9 @@ class PrinterRepositoryImpl(
         pesoNeto: Double,
         titulo: String,
         piePagina: String
-    ): Boolean {
-        val socket = printerBluetoothManager.connectToPrinter(printerName) ?: return false
-        val success = printerHelper.printTrailerSalidaTicket(
+    ): Boolean = imprimir(printerName, "SALIDA") { socket ->
+        printerHelper.printTrailerSalidaTicket(
             socket, placas, conductor, carga, pesoEntrada, fechaEntrada, pesoSalida, fechaSalida, pesoNeto, titulo, piePagina
         )
-        try { socket.close() } catch (_: Exception) {}
-        return success
     }
 }

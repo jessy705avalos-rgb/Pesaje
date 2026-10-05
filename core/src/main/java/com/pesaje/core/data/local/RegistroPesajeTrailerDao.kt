@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+
 //Data Access Object : Es una interfaz que contiene las operaciones que puedes hacer sobre una tabla de Room.
 @Dao  //DAO = operaciones de acceso a datos.
 interface RegistroPesajeTrailerDao {   //Room, esta interfaz contiene las operaciones de acceso a la base de datos
@@ -27,11 +28,19 @@ interface RegistroPesajeTrailerDao {   //Room, esta interfaz contiene las operac
     @Query("DELETE FROM registros_pesaje_trailer") //Borra todos los registros de esta tabla
     suspend fun borrarTodos()
 
-    // Obtener el último registrado en Entrada (Estado ABIERTO)
-    @Query("SELECT * FROM registros_pesaje_trailer WHERE estaAbierto = 1 ORDER BY id DESC LIMIT 1")
+    // Último que ENTRÓ (esté abierto o ya haya salido)
+    @Query("SELECT * FROM registros_pesaje_trailer ORDER BY id DESC LIMIT 1")
     suspend fun obtenerUltimoEntrada(): RegistroPesajeTrailer?
 
-    // Obtener el último registrado en Salida (Estado CERRADO)
-    @Query("SELECT * FROM registros_pesaje_trailer WHERE estaAbierto = 0 ORDER BY id DESC LIMIT 1")
+
+    // Último que SALIÓ (por fecha/hora de salida real)
+    @Query(
+        """
+    SELECT * FROM registros_pesaje_trailer
+    WHERE estaAbierto = 0 AND fechaSalida IS NOT NULL
+    ORDER BY substr(fechaSalida, 7, 4) || substr(fechaSalida, 4, 2) || substr(fechaSalida, 1, 2) || substr(fechaSalida, 12, 8) DESC
+    LIMIT 1
+"""
+    )
     suspend fun obtenerUltimoSalida(): RegistroPesajeTrailer?
 }
