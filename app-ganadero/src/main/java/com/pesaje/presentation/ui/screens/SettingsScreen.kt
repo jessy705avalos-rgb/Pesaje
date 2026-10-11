@@ -507,6 +507,16 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
+
+            Text(
+                text = "Ganadero LOCOSC LP",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+
         }
     }
 }

@@ -10,8 +10,7 @@ import kotlinx.coroutines.delay
 private const val TAG = "PESAJE_PRINT"
 
 // Pausa antes de cerrar para que la impresora termine de recibir los datos
-private const val CLOSE_DELAY_MS = 800L
-
+private const val CLOSE_DELAY_MS = 1500L
 class PrinterRepositoryImpl(
     private val printerBluetoothManager: PrinterBluetoothManager,
     private val printerHelper: TicketPrinterHelper

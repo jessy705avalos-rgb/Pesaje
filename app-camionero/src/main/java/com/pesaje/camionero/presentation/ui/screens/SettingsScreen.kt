@@ -524,6 +524,15 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
+
+            Text(
+                text = "Camionero LOCOSC LP",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
