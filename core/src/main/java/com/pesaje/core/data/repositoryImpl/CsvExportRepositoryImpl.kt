@@ -52,7 +52,12 @@ class CsvExportRepositoryImpl : CsvExportRepository {
                     if (espacioIndex != -1) textoFecha.substring(espacioIndex + 1) else ""
 
                 val pesoFormateado = java.math.BigDecimal.valueOf(registro.peso).toPlainString()
-                writer.append("${registro.id},\"${registro.arete}\",\"${registro.sexo}\",$pesoFormateado,\"$fechaSolo\",\"$horaSolo\"\n")
+
+                // CORRECCIÓN: Agregamos una comilla simple (' ) al inicio del Arete dentro de las comillas
+                // para forzar a Excel a leerlo estrictamente como texto y evitar que redondee a ceros.
+                val areteSeguro = "=\"${registro.arete}\""
+
+                writer.append("${registro.id},$areteSeguro,\"${registro.sexo}\",$pesoFormateado,\"$fechaSolo\",\"$horaSolo\"\n")
             }
 
             writer.flush()

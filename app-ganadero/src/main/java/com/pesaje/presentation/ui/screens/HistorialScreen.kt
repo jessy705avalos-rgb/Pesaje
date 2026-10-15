@@ -220,9 +220,10 @@ private fun TablaRegistros(registros: List<RegistroPesajeGanado>) {
 
     val maxCaracteresArete = remember(registros) {
         val maxEnLista = registros.maxOfOrNull { it.arete.length } ?: 0
-        maxOf(5, maxEnLista)
+        maxOf(5, minOf(maxEnLista, 20))
     }
-    val anchoArete = (maxCaracteresArete * 10).dp.coerceAtLeast(80.dp)
+    // Aumentamos el multiplicador de 10 a 13 para darle más espacio a cada carácter y evitar que se corte el texto
+    val anchoArete = (maxCaracteresArete * 13).dp.coerceAtLeast(80.dp)
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(

@@ -284,7 +284,7 @@ fun WeightScreen(
                     value = areteId,
                     onValueChange = { nuevoTexto ->
                         val soloNumeros = nuevoTexto.filter { it.isDigit() }
-                        if (soloNumeros.length <= 12) {
+                        if (soloNumeros.length <= 20) {
                             areteId = soloNumeros
                         }
                     },
